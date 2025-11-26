@@ -149,6 +149,22 @@ export default function MapView({ className }: MapViewProps) {
                 },
             });
 
+            // Add Range Circle Layer for MOVEMENT quests (faint purple)
+            map.addLayer({
+                id: 'quest-movement-range',
+                type: 'circle',
+                source: 'quests',
+                filter: ['==', ['get', 'questType'], 'MOVEMENT'],
+                paint: {
+                    'circle-radius': 40, // Visual range
+                    'circle-color': '#9d00ff',
+                    'circle-opacity': 0.15,
+                    'circle-stroke-width': 1,
+                    'circle-stroke-color': '#9d00ff',
+                    'circle-stroke-opacity': 0.3,
+                },
+            });
+
             // Add Circle Layer for MOVEMENT quests (purple)
             map.addLayer({
                 id: 'quest-movement',
@@ -156,9 +172,9 @@ export default function MapView({ className }: MapViewProps) {
                 source: 'quests',
                 filter: ['==', ['get', 'questType'], 'MOVEMENT'],
                 paint: {
-                    'circle-radius': 8,
+                    'circle-radius': 12, // Larger touch target
                     'circle-color': '#9d00ff',
-                    'circle-stroke-width': 2,
+                    'circle-stroke-width': 3,
                     'circle-stroke-color': '#ffffff',
                 },
             });
@@ -172,14 +188,30 @@ export default function MapView({ className }: MapViewProps) {
                 layout: {
                     'text-field': ['get', 'title'],
                     'text-font': ['Noto Sans Regular'],
-                    'text-offset': [0, 1.5],
+                    'text-offset': [0, 2],
                     'text-anchor': 'top',
-                    'text-size': 12,
+                    'text-size': 14, // Larger text
                 },
                 paint: {
                     'text-color': '#ffffff',
                     'text-halo-color': '#000000',
-                    'text-halo-width': 1,
+                    'text-halo-width': 2,
+                },
+            });
+
+            // Add Range Circle Layer for CHECKIN quests (faint pink)
+            map.addLayer({
+                id: 'quest-checkin-range',
+                type: 'circle',
+                source: 'quests',
+                filter: ['==', ['get', 'questType'], 'CHECKIN'],
+                paint: {
+                    'circle-radius': 50,
+                    'circle-color': '#ff0080',
+                    'circle-opacity': 0.15,
+                    'circle-stroke-width': 1,
+                    'circle-stroke-color': '#ff0080',
+                    'circle-stroke-opacity': 0.3,
                 },
             });
 
@@ -190,9 +222,9 @@ export default function MapView({ className }: MapViewProps) {
                 source: 'quests',
                 filter: ['==', ['get', 'questType'], 'CHECKIN'],
                 paint: {
-                    'circle-radius': 8,
+                    'circle-radius': 12, // Larger touch target
                     'circle-color': '#ff0080',
-                    'circle-stroke-width': 2,
+                    'circle-stroke-width': 3,
                     'circle-stroke-color': '#ffffff',
                 },
             });
@@ -206,14 +238,14 @@ export default function MapView({ className }: MapViewProps) {
                 layout: {
                     'text-field': ['get', 'title'],
                     'text-font': ['Noto Sans Regular'],
-                    'text-offset': [0, 1.5],
+                    'text-offset': [0, 2],
                     'text-anchor': 'top',
-                    'text-size': 12,
+                    'text-size': 14,
                 },
                 paint: {
                     'text-color': '#ffffff',
                     'text-halo-color': '#000000',
-                    'text-halo-width': 1,
+                    'text-halo-width': 2,
                 },
             });
 
@@ -224,9 +256,9 @@ export default function MapView({ className }: MapViewProps) {
                 source: 'quests',
                 filter: ['==', ['get', 'questType'], 'MYSTERY'],
                 paint: {
-                    'circle-radius': 10,
+                    'circle-radius': 14, // Larger
                     'circle-color': '#FFD700',
-                    'circle-stroke-width': 2,
+                    'circle-stroke-width': 3,
                     'circle-stroke-color': '#000000',
                 },
             });
@@ -240,7 +272,7 @@ export default function MapView({ className }: MapViewProps) {
                 layout: {
                     'text-field': '?',
                     'text-font': ['Noto Sans Regular'],
-                    'text-size': 20,
+                    'text-size': 24, // Larger
                     'text-offset': [0, 0],
                     'text-anchor': 'center',
                     'icon-allow-overlap': true,
@@ -257,9 +289,9 @@ export default function MapView({ className }: MapViewProps) {
                 source: 'quests',
                 filter: ['==', ['get', 'questType'], 'MYSTERY'],
                 paint: {
-                    'circle-radius': 15, // Visual radius
+                    'circle-radius': 60, // Larger Visual radius
                     'circle-color': '#FFD700',
-                    'circle-opacity': 0.2,
+                    'circle-opacity': 0.15,
                     'circle-stroke-width': 1,
                     'circle-stroke-color': '#FFD700',
                     'circle-stroke-opacity': 0.5,
@@ -267,7 +299,11 @@ export default function MapView({ className }: MapViewProps) {
             });
 
             // Click handler for ALL quest layers
-            const questLayers = ['quest-movement', 'quest-checkin', 'quest-mystery', 'quest-mystery-radius', 'quest-mystery-point'];
+            const questLayers = [
+                'quest-movement', 'quest-movement-range',
+                'quest-checkin', 'quest-checkin-range',
+                'quest-mystery', 'quest-mystery-radius', 'quest-mystery-point'
+            ];
 
             questLayers.forEach(layerId => {
                 map.on('click', layerId, (e) => {

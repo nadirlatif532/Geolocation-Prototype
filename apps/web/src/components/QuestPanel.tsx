@@ -27,10 +27,10 @@ export default function QuestPanel() {
     }
 
     return (
-        <div className="absolute top-6 right-6 z-10 w-80 max-h-[85vh] flex flex-col">
-            <div className="bg-card border border-border rounded-lg overflow-hidden shadow-2xl flex flex-col max-h-full">
+        <div className="absolute top-auto bottom-0 left-0 w-full md:top-6 md:right-6 md:bottom-auto md:left-auto md:w-80 z-10 flex flex-col max-h-[50vh] md:max-h-[85vh]">
+            <div className="bg-card border-t md:border border-border md:rounded-lg overflow-hidden shadow-2xl flex flex-col max-h-full">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-primary/20 to-transparent px-4 py-3 border-b border-border flex-shrink-0">
+                <div className="bg-gradient-to-r from-primary/20 to-transparent px-4 py-3 border-b border-border flex-shrink-0 flex justify-between items-center">
                     <h2 className="font-display text-xl font-bold text-primary tracking-wide">QUESTS</h2>
                 </div>
 
@@ -38,7 +38,7 @@ export default function QuestPanel() {
                 <div className="overflow-y-auto flex-1 p-4 space-y-3">
                     {/* Active Quests - Filtered to only show DAILY/WEEKLY */}
                     {nearbyQuests
-                        .filter(q => q.type === 'DAILY' || q.type === 'WEEKLY' || q.type === 'MOVEMENT') // Assuming MOVEMENT is treated as daily for now
+                        .filter(q => q.type === 'DAILY' || q.type === 'MOVEMENT') // Assuming MOVEMENT is treated as daily for now
                         .map((quest) => {
                             const progress = QuestManager.getProgressPercentage(
                                 quest,

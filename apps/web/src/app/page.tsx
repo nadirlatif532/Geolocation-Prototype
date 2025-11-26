@@ -17,47 +17,18 @@ export default function Home() {
     const updateLocation = useQuestStore((state) => state.updateLocation);
     const addQuest = useQuestStore((state) => state.addQuest);
 
+    const setGPSMode = useQuestStore((state) => state.setGPSMode);
+
     // Wake Lock: Prevent screen from sleeping during quest tracking
     useWakeLock();
 
-    // Initialize location tracking
-    useEffect(() => {
-        const userId = 'local-user'; // TODO: Get from auth store when auth is fully integrated
-        const service = useMockGPS ? mockLocationService : geolocationService;
+    // Helper to initialize sample quests (Deferred until location is found)
+    const initializeQuests = (lat: number, lng: number) => {
+        // Only add quests if none exist
+        if (useQuestStore.getState().activeQuests.length > 0) return;
 
-        service.startWatching(
-            (location) => {
-                // Update local state
-                updateLocation(location);
+        console.log('[Home] Initializing sample quests at:', lat, lng);
 
-                // Send to backend with offline queue support
-                apiService.updateLocation(userId, location).catch((error) => {
-                    console.error('[Home] Failed to send location update:', error);
-                });
-
-                // Auto-scan for quests if we have a location and no active quests (initial load)
-                // We can optimize this later to scan periodically or on significant movement
-                const state = useQuestStore.getState();
-                if (state.activeQuests.length === 0) {
-                    apiService.scanQuests(userId, location.lat, location.lng).then((result) => {
-                        if (result.quests && Array.isArray(result.quests)) {
-                            result.quests.forEach((quest) => addQuest(quest));
-                        }
-                    }).catch(err => console.error('[Home] Auto-scan failed:', err));
-                }
-            },
-            (error) => {
-                console.error('Location error:', error);
-            }
-        );
-
-        return () => {
-            service.stopWatching();
-        };
-    }, [useMockGPS, updateLocation, addQuest]);
-
-    // Add sample quests on mount
-    useEffect(() => {
         // Sample movement quest: Walk 1000m
         addQuest({
             id: 'quest-movement-1',
@@ -72,13 +43,17 @@ export default function Home() {
             ],
         });
 
-        // Sample check-in quest: Visit Acropolis
+        // Sample check-in quest: Nearby Landmark (Dynamic based on location)
+        // For demo, we'll just put it 100m away
         addQuest({
             id: 'quest-checkin-1',
             type: 'CHECKIN',
-            title: 'Visit the Acropolis',
-            description: 'Check in at the historic Acropolis of Athens',
-            targetCoordinates: { lat: 37.9715, lng: 23.7257 },
+            title: 'Visit Local Landmark',
+            description: 'Check in at the nearby point of interest',
+            targetCoordinates: {
+                lat: lat + 0.001, // Roughly 100m North
+                lng: lng + 0.001  // Roughly 100m East
+            },
             radiusMeters: 100,
             rewards: [
                 { type: 'EXP', value: 250 },
@@ -99,7 +74,54 @@ export default function Home() {
                 { type: 'CURRENCY', value: 200 },
             ],
         });
-    }, [addQuest]);
+    };
+
+    // Initialize location tracking
+    useEffect(() => {
+        const userId = 'local-user'; // TODO: Get from auth store when auth is fully integrated
+        const service = useMockGPS ? mockLocationService : geolocationService;
+
+        console.log(`[Home] Starting location service. Mock Mode: ${useMockGPS}`);
+
+        service.startWatching(
+            (location) => {
+                // Update local state
+                updateLocation(location);
+
+                // Send to backend with offline queue support
+                apiService.updateLocation(userId, location).catch((error) => {
+                    console.error('[Home] Failed to send location update:', error);
+                });
+
+                // Initialize quests if this is the first location update
+                // We check if activeQuests is empty to ensure we only do this once
+                const state = useQuestStore.getState();
+                if (state.activeQuests.length === 0) {
+                    initializeQuests(location.lat, location.lng);
+
+                    // Also try to scan for server-side quests
+                    apiService.scanQuests(userId, location.lat, location.lng).then((result) => {
+                        if (result.quests && Array.isArray(result.quests)) {
+                            result.quests.forEach((quest) => addQuest(quest));
+                        }
+                    }).catch(err => console.error('[Home] Auto-scan failed:', err));
+                }
+            },
+            (error) => {
+                console.error('Location error:', error);
+
+                // FALLBACK LOGIC: If Real GPS fails, switch to Mock Mode (Athens)
+                if (!useMockGPS) {
+                    console.warn('[Home] Real GPS failed or denied. Falling back to Athens (Mock Mode).');
+                    setGPSMode(true); // This will trigger the effect again with mockLocationService
+                }
+            }
+        );
+
+        return () => {
+            service.stopWatching();
+        };
+    }, [useMockGPS, updateLocation, addQuest, setGPSMode]);
 
     return (
         <main className="relative w-screen h-screen overflow-hidden">
