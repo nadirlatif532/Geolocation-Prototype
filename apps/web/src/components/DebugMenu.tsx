@@ -7,8 +7,8 @@ import { useAuthStore } from '@/store/authStore';
 import { Bug, MapPin, RefreshCw, PlusCircle, X, Minus, Landmark } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 
-export default function DebugMenu() {
-    const [isOpen, setIsOpen] = useState(false);
+export default function DebugMenu({ className, embedded = false }: { className?: string; embedded?: boolean }) {
+    const [isOpen, setIsOpen] = useState(embedded);
     const [isMinimized, setIsMinimized] = useState(false);
     const currentLocation = useQuestStore((state) => state.currentLocation);
     const addQuest = useQuestStore((state) => state.addQuest);
@@ -101,11 +101,11 @@ export default function DebugMenu() {
         }
     };
 
-    if (!isOpen) {
+    if (!isOpen && !embedded) {
         return (
             <button
                 onClick={() => { setIsOpen(true); setIsMinimized(false); }}
-                className="fixed bottom-6 right-6 z-50 bg-destructive text-destructive-foreground p-3 rounded-full shadow-lg hover:bg-destructive/90 transition-all"
+                className={`fixed bottom-6 right-6 z-50 bg-destructive text-destructive-foreground p-3 rounded-full shadow-lg hover:bg-destructive/90 transition-all ${className || ''}`}
                 title="Debug Menu"
             >
                 <Bug className="w-6 h-6" />
@@ -113,9 +113,13 @@ export default function DebugMenu() {
         );
     }
 
+    const containerClasses = embedded
+        ? `w-full bg-card ${className || ''}`
+        : `fixed bottom-6 right-6 z-50 bg-card border border-destructive/50 rounded-lg shadow-2xl overflow-hidden transition-all duration-300 ${isMinimized ? 'w-64 h-12' : 'w-64'} ${className || ''}`;
+
     return (
-        <div className={`fixed bottom-6 right-6 z-50 bg-card border border-destructive/50 rounded-lg shadow-2xl overflow-hidden transition-all duration-300 ${isMinimized ? 'w-64 h-12' : 'w-64'}`}>
-            <div className="bg-destructive/10 p-3 border-b border-destructive/20 flex justify-between items-center h-12">
+        <div className={containerClasses}>
+            <div className={`bg-destructive/10 p-3 border-b border-destructive/20 flex justify-between items-center h-12 ${embedded ? 'rounded-t-lg' : ''}`}>
                 <h3 className="font-bold text-destructive flex items-center gap-2">
                     <Bug className="w-4 h-4" />
                     DEBUG TOOLS
@@ -128,13 +132,15 @@ export default function DebugMenu() {
                     >
                         {isMinimized ? <PlusCircle className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
                     </button>
-                    <button
-                        onClick={() => setIsOpen(false)}
-                        className="text-muted-foreground hover:text-foreground p-1 rounded hover:bg-destructive/10"
-                        title="Close"
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
+                    {!embedded && (
+                        <button
+                            onClick={() => setIsOpen(false)}
+                            className="text-muted-foreground hover:text-foreground p-1 rounded hover:bg-destructive/10"
+                            title="Close"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    )}
                 </div>
             </div>
 

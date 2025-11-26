@@ -11,6 +11,8 @@ import QuestPanel from '@/components/QuestPanel';
 import ControlPanel from '@/components/ControlPanel';
 import QuestDialog from '@/components/QuestDialog';
 import DebugMenu from '@/components/DebugMenu';
+import TutorialPanel from '@/components/TutorialPanel';
+import { HelpCircle } from 'lucide-react';
 
 export default function Home() {
     const useMockGPS = useQuestStore((state) => state.useMockGPS);
@@ -20,6 +22,7 @@ export default function Home() {
 
     // Drawer State: which drawer is open ('none', 'quests', 'controls', 'debug')
     const [openDrawer, setOpenDrawer] = useState<'none' | 'quests' | 'controls' | 'debug'>('none');
+    const [showTutorial, setShowTutorial] = useState(false);
 
     // Wake Lock: Prevent screen from sleeping during quest tracking
     useWakeLock();
@@ -195,7 +198,7 @@ export default function Home() {
             <div className="md:hidden">
                 {/* Quests Drawer */}
                 <div
-                    className={`fixed top-[35%] left-0 z-40 transition-transform duration-300 ease-in-out ${openDrawer === 'quests' ? 'translate-x-0' : '-translate-x-full'
+                    className={`fixed top-[calc(50%-110px)] left-0 z-40 transition-transform duration-300 ease-in-out -translate-y-1/2 ${openDrawer === 'quests' ? 'translate-x-0' : '-translate-x-full'
                         }`}
                     style={{ maxWidth: '80vw' }}
                 >
@@ -237,13 +240,13 @@ export default function Home() {
 
                 {/* Debug Drawer */}
                 <div
-                    className={`fixed top-[60%] left-0 z-40 transition-transform duration-300 ease-in-out ${openDrawer === 'debug' ? 'translate-x-0' : '-translate-x-full'
+                    className={`fixed top-[calc(50%+110px)] left-0 z-40 transition-transform duration-300 ease-in-out -translate-y-1/2 ${openDrawer === 'debug' ? 'translate-x-0' : '-translate-x-full'
                         }`}
                     style={{ maxWidth: '80vw' }}
                 >
                     <div className="flex items-start">
                         <div className="bg-card/95 backdrop-blur-sm rounded-r-xl shadow-2xl border-r border-t border-b border-border max-h-[60vh] overflow-hidden">
-                            <DebugMenu />
+                            <DebugMenu embedded={true} />
                         </div>
                         <button
                             onClick={() => toggleDrawer('debug')}
@@ -262,7 +265,7 @@ export default function Home() {
                 {openDrawer !== 'quests' && (
                     <button
                         onClick={() => toggleDrawer('quests')}
-                        className="fixed top-[35%] left-0 z-30 px-2 py-6 rounded-r-lg bg-card/95 backdrop-blur-sm text-muted-foreground border border-border shadow-lg transition-all hover:bg-primary hover:text-primary-foreground"
+                        className="fixed top-[calc(50%-110px)] left-0 z-30 px-2 py-6 rounded-r-lg bg-card/95 backdrop-blur-sm text-muted-foreground border border-border shadow-lg transition-all hover:bg-primary hover:text-primary-foreground -translate-y-1/2"
                         style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
                     >
                         <span className="text-sm font-bold tracking-wider">QUESTS</span>
@@ -282,7 +285,7 @@ export default function Home() {
                 {openDrawer !== 'debug' && (
                     <button
                         onClick={() => toggleDrawer('debug')}
-                        className="fixed top-[60%] left-0 z-30 px-2 py-6 rounded-r-lg bg-card/95 backdrop-blur-sm text-muted-foreground border border-border shadow-lg transition-all hover:bg-primary hover:text-primary-foreground"
+                        className="fixed top-[calc(50%+110px)] left-0 z-30 px-2 py-6 rounded-r-lg bg-card/95 backdrop-blur-sm text-muted-foreground border border-border shadow-lg transition-all hover:bg-primary hover:text-primary-foreground -translate-y-1/2"
                         style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
                     >
                         <span className="text-sm font-bold tracking-wider">DEBUG</span>
@@ -314,6 +317,27 @@ export default function Home() {
                     {useMockGPS ? 'Use WASD or Arrow keys' : 'Using device location'}
                 </div>
             </div>
+
+            {/* Tutorial Button (Top Left) */}
+            <button
+                onClick={() => setShowTutorial(true)}
+                className="absolute top-6 left-6 z-20 bg-card/95 backdrop-blur-sm p-3 rounded-full shadow-lg border border-border hover:bg-primary hover:text-primary-foreground transition-all md:hidden"
+                title="How to Play"
+            >
+                <HelpCircle className="w-6 h-6" />
+            </button>
+
+            {/* Desktop Tutorial Button */}
+            <button
+                onClick={() => setShowTutorial(true)}
+                className="absolute top-6 right-6 z-20 bg-card/95 backdrop-blur-sm p-3 rounded-full shadow-lg border border-border hover:bg-primary hover:text-primary-foreground transition-all hidden md:block"
+                title="How to Play"
+            >
+                <HelpCircle className="w-6 h-6" />
+            </button>
+
+            {/* Tutorial Modal */}
+            {showTutorial && <TutorialPanel onClose={() => setShowTutorial(false)} />}
         </main>
     );
 }
