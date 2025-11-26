@@ -1,0 +1,84 @@
+// Prisma schema for Couch Heroes backend
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  locationHistory LocationHistory[]
+  userQuests      UserQuest[]
+
+  @@map("users")
+}
+
+model Quest {
+  id          String   @id @default(cuid())
+  type        String   // MOVEMENT, CHECKIN, DAILY
+  title       String
+  description String
+  
+  // Movement quest fields
+  targetDistanceMeters Int?
+  
+  // Check-in quest fields
+  targetLat     Float?
+  targetLng     Float?
+  radiusMeters  Int?    @default(50)
+  
+  // Rewards (stored as JSON)
+  rewards      Json
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  userQuests   UserQuest[]
+
+  @@map("quests")
+}
+
+model UserQuest {
+  id                    String    @id @default(cuid())
+  userId                String
+  questId               String
+  
+  currentDistanceMeters Float?    @default(0)
+  isCompleted           Boolean   @default(false)
+  completedAt           DateTime?
+  rewardsClaimed        Boolean   @default(false)
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quest                 Quest     @relation(fields: [questId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questId])
+  @@map("user_quests")
+}
+
+model LocationHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  lat       Float
+  lng       Float
+  speed     Float    // m/s
+  timestamp BigInt   // Unix timestamp in milliseconds
+  
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, timestamp])
+  @@map("location_history")
+}
