@@ -43,8 +43,8 @@ export default function ControlPanel({ className }: { className?: string }) {
     };
 
     return (
-        <div className={`absolute top-0 left-0 w-full md:top-6 md:left-6 md:w-80 z-10 pointer-events-none ${className || ''}`}>
-            <div className="bg-card border-b md:border border-border md:rounded-lg overflow-hidden shadow-2xl pointer-events-auto">
+        <div className={`w-full md:w-80 pointer-events-none ${className || ''}`}>
+            <div className="bg-card border border-border rounded-lg overflow-hidden shadow-2xl pointer-events-auto">
                 {/* Header */}
                 <div className="bg-gradient-to-r from-primary/20 to-transparent px-4 py-3 border-b border-border">
                     <h2 className="font-display text-xl font-bold text-primary tracking-wide">CONTROLS</h2>

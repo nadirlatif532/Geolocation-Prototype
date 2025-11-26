@@ -18,8 +18,8 @@ export default function Home() {
     const addQuest = useQuestStore((state) => state.addQuest);
     const setGPSMode = useQuestStore((state) => state.setGPSMode);
 
-    // Mobile Tab State
-    const [activeTab, setActiveTab] = useState<'none' | 'quests' | 'controls' | 'debug'>('none');
+    // Drawer State: which drawer is open ('none', 'quests', 'controls', 'debug')
+    const [openDrawer, setOpenDrawer] = useState<'none' | 'quests' | 'controls' | 'debug'>('none');
 
     // Wake Lock: Prevent screen from sleeping during quest tracking
     useWakeLock();
@@ -125,67 +125,136 @@ export default function Home() {
         };
     }, [useMockGPS, updateLocation, addQuest, setGPSMode]);
 
+    const toggleDrawer = (drawer: 'quests' | 'controls' | 'debug') => {
+        setOpenDrawer(openDrawer === drawer ? 'none' : drawer);
+    };
+
     return (
-        <main className="relative w-screen h-screen overflow-hidden flex">
-            {/* Mobile Sidebar Navigation */}
-            <div className="md:hidden flex flex-col gap-2 p-2 bg-card border-r border-border z-50 w-16 h-full shrink-0">
-                <button
-                    onClick={() => setActiveTab(activeTab === 'quests' ? 'none' : 'quests')}
-                    className={`p-3 rounded-lg flex flex-col items-center justify-center gap-1 transition-colors ${activeTab === 'quests' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}
+        <main className="relative w-screen h-screen overflow-hidden">
+            {/* Map Background */}
+            <MapView className="absolute inset-0 z-0" />
+
+            {/* Floating Drawer System (Mobile Only) */}
+            <div className="md:hidden">
+                {/* Quests Drawer */}
+                <div
+                    className={`fixed top-4 left-0 z-40 transition-transform duration-300 ease-in-out ${openDrawer === 'quests' ? 'translate-x-0' : '-translate-x-full'
+                        }`}
+                    style={{ maxWidth: '80vw' }}
                 >
-                    <span className="text-xs font-bold">Quests</span>
-                </button>
-                <button
-                    onClick={() => setActiveTab(activeTab === 'controls' ? 'none' : 'controls')}
-                    className={`p-3 rounded-lg flex flex-col items-center justify-center gap-1 transition-colors ${activeTab === 'controls' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}
+                    <div className="flex items-start">
+                        <QuestPanel className="bg-card/95 backdrop-blur-sm rounded-r-xl shadow-2xl border-r border-t border-b border-border" />
+                        <button
+                            onClick={() => toggleDrawer('quests')}
+                            className={`ml-1 px-2 py-6 rounded-r-lg transition-colors shadow-lg ${openDrawer === 'quests'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-card/95 backdrop-blur-sm text-muted-foreground border border-border'
+                                }`}
+                            style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+                        >
+                            <span className="text-sm font-bold tracking-wider">QUESTS</span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Controls Drawer */}
+                <div
+                    className={`fixed top-1/3 left-0 z-40 transition-transform duration-300 ease-in-out ${openDrawer === 'controls' ? 'translate-x-0' : '-translate-x-full'
+                        }`}
+                    style={{ maxWidth: '80vw' }}
                 >
-                    <span className="text-xs font-bold">Controls</span>
-                </button>
-                <button
-                    onClick={() => setActiveTab(activeTab === 'debug' ? 'none' : 'debug')}
-                    className={`p-3 rounded-lg flex flex-col items-center justify-center gap-1 transition-colors ${activeTab === 'debug' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}
+                    <div className="flex items-start">
+                        <ControlPanel className="bg-card/95 backdrop-blur-sm rounded-r-xl shadow-2xl border-r border-t border-b border-border" />
+                        <button
+                            onClick={() => toggleDrawer('controls')}
+                            className={`ml-1 px-2 py-6 rounded-r-lg transition-colors shadow-lg ${openDrawer === 'controls'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-card/95 backdrop-blur-sm text-muted-foreground border border-border'
+                                }`}
+                            style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+                        >
+                            <span className="text-sm font-bold tracking-wider">CONTROLS</span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Debug Drawer */}
+                <div
+                    className={`fixed bottom-4 left-0 z-40 transition-transform duration-300 ease-in-out ${openDrawer === 'debug' ? 'translate-x-0' : '-translate-x-full'
+                        }`}
+                    style={{ maxWidth: '80vw' }}
                 >
-                    <span className="text-xs font-bold">Debug</span>
-                </button>
+                    <div className="flex items-start">
+                        <div className="bg-card/95 backdrop-blur-sm rounded-r-xl shadow-2xl border-r border-t border-b border-border p-4 max-h-[60vh] overflow-auto">
+                            <DebugMenu />
+                        </div>
+                        <button
+                            onClick={() => toggleDrawer('debug')}
+                            className={`ml-1 px-2 py-6 rounded-r-lg transition-colors shadow-lg ${openDrawer === 'debug'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-card/95 backdrop-blur-sm text-muted-foreground border border-border'
+                                }`}
+                            style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+                        >
+                            <span className="text-sm font-bold tracking-wider">DEBUG</span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Floating Buttons (when drawers are closed) */}
+                {openDrawer !== 'quests' && (
+                    <button
+                        onClick={() => toggleDrawer('quests')}
+                        className="fixed top-4 left-0 z-30 px-2 py-6 rounded-r-lg bg-card/95 backdrop-blur-sm text-muted-foreground border border-border shadow-lg transition-all hover:bg-primary hover:text-primary-foreground"
+                        style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+                    >
+                        <span className="text-sm font-bold tracking-wider">QUESTS</span>
+                    </button>
+                )}
+
+                {openDrawer !== 'controls' && (
+                    <button
+                        onClick={() => toggleDrawer('controls')}
+                        className="fixed top-1/3 left-0 z-30 px-2 py-6 rounded-r-lg bg-card/95 backdrop-blur-sm text-muted-foreground border border-border shadow-lg transition-all hover:bg-primary hover:text-primary-foreground"
+                        style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+                    >
+                        <span className="text-sm font-bold tracking-wider">CONTROLS</span>
+                    </button>
+                )}
+
+                {openDrawer !== 'debug' && (
+                    <button
+                        onClick={() => toggleDrawer('debug')}
+                        className="fixed bottom-4 left-0 z-30 px-2 py-6 rounded-r-lg bg-card/95 backdrop-blur-sm text-muted-foreground border border-border shadow-lg transition-all hover:bg-primary hover:text-primary-foreground"
+                        style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+                    >
+                        <span className="text-sm font-bold tracking-wider">DEBUG</span>
+                    </button>
+                )}
             </div>
 
-            <div className="relative flex-1 h-full overflow-hidden">
-                {/* LAYER 1: Map (Bottom) */}
-                <MapView className="z-0" />
-
-                {/* LAYER 2: Game Canvas (Middle - Transparent) */}
-                {/* TODO: Add canvas for particles, effects, animations */}
-
-                {/* LAYER 3: UI Overlay (Top) */}
-
-                {/* Quest Panel: Visible if activeTab is 'quests' OR on desktop */}
-                <div className={`${activeTab === 'quests' ? 'block absolute inset-0 z-20 bg-background/80 backdrop-blur-sm p-4' : 'hidden'} md:block md:static md:bg-transparent md:p-0`}>
-                    <QuestPanel className="w-full h-full md:w-auto md:h-auto" />
-                </div>
-
-                {/* Control Panel: Visible if activeTab is 'controls' OR on desktop */}
-                <div className={`${activeTab === 'controls' ? 'block absolute inset-0 z-20 bg-background/80 backdrop-blur-sm p-4' : 'hidden'} md:block md:static md:bg-transparent md:p-0`}>
-                    <ControlPanel className="w-full md:w-auto" />
-                </div>
-
-                <QuestDialog />
-
-                {/* Debug Menu: Visible if activeTab is 'debug' OR on desktop (it has its own toggle) */}
-                <div className={`${activeTab === 'debug' ? 'block absolute inset-0 z-20 pointer-events-none' : 'hidden'} md:block md:static`}>
+            {/* Desktop Layout (Unchanged) */}
+            <div className="hidden md:block absolute inset-0 pointer-events-none">
+                <QuestPanel className="absolute top-6 right-20 z-20 pointer-events-auto" />
+                <ControlPanel className="absolute top-6 left-6 z-20 pointer-events-auto" />
+                <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
                     <DebugMenu />
                 </div>
+            </div>
 
-                {/* Debug Info */}
-                <div className="absolute bottom-6 left-6 z-10 bg-card/95 backdrop-blur-sm border border-primary/30 rounded-lg px-4 py-2.5 shadow-xl hidden md:block">
-                    <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                        <span className="text-sm font-medium text-primary">
-                            {useMockGPS ? '🎮 Mock GPS Active' : '📍 Real GPS Active'}
-                        </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                        {useMockGPS ? 'Use WASD or Arrow keys' : 'Using device location'}
-                    </div>
+            {/* Quest Dialog (Mobile & Desktop) */}
+            <QuestDialog />
+
+            {/* Debug Info (Desktop Only) */}
+            <div className="absolute bottom-6 left-6 z-10 bg-card/95 backdrop-blur-sm border border-primary/30 rounded-lg px-4 py-2.5 shadow-xl hidden md:block">
+                <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    <span className="text-sm font-medium text-primary">
+                        {useMockGPS ? '🎮 Mock GPS Active' : '📍 Real GPS Active'}
+                    </span>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                    {useMockGPS ? 'Use WASD or Arrow keys' : 'Using device location'}
                 </div>
             </div>
         </main>

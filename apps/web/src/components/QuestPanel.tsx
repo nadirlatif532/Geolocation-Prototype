@@ -13,7 +13,7 @@ export default function QuestPanel({ className }: { className?: string }) {
 
     if (nearbyQuests.length === 0 && completedQuests.length === 0) {
         return (
-            <div className={`absolute top-6 right-6 z-10 w-80 ${className || ''}`}>
+            <div className={`w-full md:w-80 ${className || ''}`}>
                 <div className="bg-card border border-border rounded-lg overflow-hidden shadow-2xl">
                     <div className="bg-gradient-to-r from-primary/20 to-transparent px-4 py-3 border-b border-border">
                         <h2 className="font-display text-xl font-bold text-primary tracking-wide">QUESTS</h2>
@@ -27,8 +27,8 @@ export default function QuestPanel({ className }: { className?: string }) {
     }
 
     return (
-        <div className={`absolute top-auto bottom-0 left-0 w-full md:top-6 md:right-6 md:bottom-auto md:left-auto md:w-80 z-10 flex flex-col max-h-[50vh] md:max-h-[85vh] ${className || ''}`}>
-            <div className="bg-card border-t md:border border-border md:rounded-lg overflow-hidden shadow-2xl flex flex-col max-h-full">
+        <div className={`w-full md:w-80 flex flex-col max-h-[70vh] ${className || ''}`}>
+            <div className="bg-card border border-border rounded-lg overflow-hidden shadow-2xl flex flex-col max-h-full">
                 {/* Header */}
                 <div className="bg-gradient-to-r from-primary/20 to-transparent px-4 py-3 border-b border-border flex-shrink-0 flex justify-between items-center">
                     <h2 className="font-display text-xl font-bold text-primary tracking-wide">QUESTS</h2>
