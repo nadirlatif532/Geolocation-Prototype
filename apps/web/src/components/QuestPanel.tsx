@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useQuestStore } from '@/store/questStore';
 import { QuestManager } from '@/lib/QuestManager';
 import { formatDistance } from '@couch-heroes/shared';
@@ -10,6 +11,28 @@ export default function QuestPanel({ className }: { className?: string }) {
     const completedQuests = useQuestStore((state) => state.completedQuests);
     const currentLocation = useQuestStore((state) => state.currentLocation);
     const locationHistory = useQuestStore((state) => state.locationHistory);
+
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // Prevent hydration mismatch by rendering empty state until mounted
+    if (!mounted) {
+        return (
+            <div className={`w-full md:w-80 ${className || ''}`}>
+                <div className="bg-card border border-border rounded-lg overflow-hidden shadow-2xl">
+                    <div className="bg-gradient-to-r from-primary/20 to-transparent px-4 py-3 border-b border-border">
+                        <h2 className="font-display text-xl font-bold text-primary tracking-wide">QUESTS</h2>
+                    </div>
+                    <div className="p-4">
+                        <p className="text-sm text-muted-foreground">Loading quests...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     if (nearbyQuests.length === 0 && completedQuests.length === 0) {
         return (
@@ -36,9 +59,80 @@ export default function QuestPanel({ className }: { className?: string }) {
 
                 {/* Scrollable Content */}
                 <div className="overflow-y-auto flex-1 p-4 space-y-3">
-                    {/* Active Quests - Filtered to only show DAILY/WEEKLY */}
+                    {/* Milestone Quests Section */}
                     {nearbyQuests
-                        .filter(q => q.type === 'DAILY' || q.type === 'MOVEMENT') // Assuming MOVEMENT is treated as daily for now
+                        .filter(q => q.type === 'MILESTONE')
+                        .map((quest) => {
+                            const progress = QuestManager.getProgressPercentage(
+                                quest,
+                                currentLocation,
+                                locationHistory
+                            );
+
+                            return (
+                                <div
+                                    key={quest.id}
+                                    onClick={() => {
+                                        if (quest.targetCoordinates) {
+                                            window.dispatchEvent(new CustomEvent('quest-focus', {
+                                                detail: {
+                                                    lat: quest.targetCoordinates.lat,
+                                                    lng: quest.targetCoordinates.lng
+                                                }
+                                            }));
+                                        }
+                                    }}
+                                    className="bg-yellow-500/10 border border-yellow-500/50 rounded-lg p-3 space-y-3 hover:border-yellow-400 transition-all relative overflow-hidden group cursor-pointer"
+                                >
+                                    {/* Gold Glow Effect */}
+                                    <div className="absolute inset-0 bg-yellow-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
+                                    {/* Quest Header */}
+                                    <div className="flex items-start justify-between gap-2 relative z-10">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="text-[10px] font-bold bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded border border-yellow-500/30">
+                                                    LEGENDARY
+                                                </span>
+                                            </div>
+                                            <h3 className="font-semibold text-sm text-yellow-100 line-clamp-2">{quest.title}</h3>
+                                            <p className="text-xs text-yellow-200/70 line-clamp-4 italic mt-0.5">"{quest.lore || quest.description}"</p>
+                                        </div>
+                                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center border border-yellow-500/30">
+                                            <Trophy className="w-4 h-4 text-yellow-400" />
+                                        </div>
+                                    </div>
+
+                                    {/* Progress Bar */}
+                                    <div className="space-y-1.5 relative z-10">
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="text-yellow-200/70">Distance</span>
+                                            <span className="text-yellow-400 font-semibold">
+                                                {currentLocation && quest.targetCoordinates ?
+                                                    formatDistance(QuestManager.getDistanceToCheckIn(quest, currentLocation) || 0) :
+                                                    'Unknown'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Rewards */}
+                                    <div className="flex flex-wrap gap-1.5 pt-1 relative z-10">
+                                        {quest.rewards.map((reward, idx) => (
+                                            <span
+                                                key={idx}
+                                                className="text-xs bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 px-2 py-1 rounded font-medium"
+                                            >
+                                                +{reward.value} {reward.type}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })}
+
+                    {/* Active Quests - Filtered to only show DAILY/WEEKLY/MOVEMENT */}
+                    {nearbyQuests
+                        .filter(q => q.type === 'DAILY' || q.type === 'MOVEMENT' || q.type === 'CHECKIN')
                         .map((quest) => {
                             const progress = QuestManager.getProgressPercentage(
                                 quest,

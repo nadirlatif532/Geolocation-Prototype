@@ -3,8 +3,8 @@
 import { useQuestStore } from '@/store/questStore';
 import { mockLocationService } from '@/services/MockLocationService';
 import { Switch } from '@/components/ui/switch';
-import { Navigation, Zap, Radar, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { Navigation, Zap, Radar, Loader2, Save, Upload, Download } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import { apiService } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 
@@ -13,7 +13,11 @@ export default function ControlPanel({ className }: { className?: string }) {
     const toggleGPSMode = useQuestStore((state) => state.toggleGPSMode);
     const currentLocation = useQuestStore((state) => state.currentLocation);
     const addQuest = useQuestStore((state) => state.addQuest);
+    const exportSave = useQuestStore((state) => state.exportSave);
+    const importSave = useQuestStore((state) => state.importSave);
     const userId = useAuthStore((state) => state.userId);
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [speedPreset, setSpeedPreset] = useState<'walking' | 'running' | 'cycling'>('walking');
     const [isScanning, setIsScanning] = useState(false);
@@ -41,6 +45,56 @@ export default function ControlPanel({ className }: { className?: string }) {
             setIsScanning(false);
         }
     };
+    const handleExport = () => {
+        const json = exportSave();
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `couch-heroes-save-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const handleImportClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const content = event.target?.result as string;
+            if (content) {
+                const success = importSave(content);
+                if (success) {
+                    alert('Save loaded successfully!');
+                    window.location.reload(); // Reload to ensure clean state
+                } else {
+                    alert('Failed to load save file.');
+                }
+            }
+        };
+        reader.readAsText(file);
+        // Reset input
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) {
+        return <div className={`w-full md:w-80 pointer-events-none ${className || ''}`} />;
+    }
 
     return (
         <div className={`w-full md:w-80 pointer-events-none ${className || ''}`}>
@@ -63,6 +117,37 @@ export default function ControlPanel({ className }: { className?: string }) {
                                 ? 'Test mode enabled. Use keyboard to simulate movement.'
                                 : 'Real GPS active. Using device location data.'}
                         </p>
+                    </div>
+
+                    {/* Data Management */}
+                    <div className="space-y-2 pt-2 border-t border-border/50">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Save className="w-4 h-4 text-primary" />
+                            <span className="text-sm font-medium text-foreground">Data Management</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                onClick={handleExport}
+                                className="bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border/50 rounded-lg py-2 px-3 text-xs font-medium transition-all flex items-center justify-center gap-2"
+                            >
+                                <Download className="w-3 h-3" />
+                                Export Save
+                            </button>
+                            <button
+                                onClick={handleImportClick}
+                                className="bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border/50 rounded-lg py-2 px-3 text-xs font-medium transition-all flex items-center justify-center gap-2"
+                            >
+                                <Upload className="w-3 h-3" />
+                                Import Save
+                            </button>
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileChange}
+                                accept=".json"
+                                className="hidden"
+                            />
+                        </div>
                     </div>
 
                     {/* Scan Button */}

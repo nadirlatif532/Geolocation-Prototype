@@ -67,7 +67,3 @@
 .quest-marker.checkin {
   @apply bg-cyber-pink;
 }
-
-.player-marker {
-  @apply w-6 h-6 rounded-full bg-cyber-green border-2 border-white shadow-lg;
-}

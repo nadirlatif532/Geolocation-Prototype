@@ -114,6 +114,14 @@ export default function DebugMenu({ className, embedded = false }: { className?:
         }
     };
 
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) return null;
+
     if (!isOpen && !embedded) {
         return (
             <button
@@ -195,6 +203,14 @@ export default function DebugMenu({ className, embedded = false }: { className?:
                     >
                         <RefreshCw className="w-4 h-4 text-orange-500" />
                         Respawn Quests
+                    </button>
+
+                    <button
+                        onClick={() => useQuestStore.getState().refreshMilestoneQuest()}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium bg-secondary/50 hover:bg-secondary rounded-md transition-colors text-left"
+                    >
+                        <RefreshCw className="w-4 h-4 text-yellow-500" />
+                        Refresh Milestone (Max 10/hr)
                     </button>
 
                     <div className="pt-2 border-t border-destructive/20">

@@ -18,6 +18,39 @@ export default function MapView({ className }: MapViewProps) {
     const currentLocation = useQuestStore((state) => state.currentLocation);
     const activeQuests = useQuestStore((state) => state.activeQuests);
 
+    const updateQuestMarkers = () => {
+        const map = mapRef.current;
+        if (!map || !map.getSource('quests')) return;
+
+        const quests = useQuestStore.getState().activeQuests;
+
+        const features = quests
+            .filter(q => !!q.targetCoordinates)
+            .map(q => ({
+                type: 'Feature',
+                geometry: {
+                    type: 'Point',
+                    coordinates: [q.targetCoordinates!.lng, q.targetCoordinates!.lat]
+                },
+                properties: {
+                    questId: q.id,
+                    questType: q.type,
+                    title: q.title,
+                    description: q.description
+                }
+            }));
+
+        (map.getSource('quests') as maplibregl.GeoJSONSource).setData({
+            type: 'FeatureCollection',
+            features: features as any
+        });
+    };
+
+    // Update markers when activeQuests changes
+    useEffect(() => {
+        updateQuestMarkers();
+    }, [activeQuests]);
+
     // Initialize map with REF GUARD to prevent React 18 Strict Mode double-mounting
     useEffect(() => {
         if (!mapContainer.current) return;
@@ -174,6 +207,61 @@ export default function MapView({ className }: MapViewProps) {
         map.on('load', () => {
             console.log('[MapView] Map loaded, adding quest markers layer...');
 
+            // Helper to add SVG image to map
+            const addImage = (id: string, svg: string) => {
+                const img = new Image(48, 48);
+                img.onload = () => map.addImage(id, img);
+                img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+            };
+
+            // Add Milestone Icon (Premium Star/Trophy Style)
+            addImage('milestone-icon', `
+                <svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#FFA500;stop-opacity:1" />
+                        </linearGradient>
+                        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+                    <g filter="url(#glow)">
+                        <!-- Outer Ring -->
+                        <circle cx="32" cy="32" r="28" fill="none" stroke="url(#gold-gradient)" stroke-width="3" stroke-dasharray="4 2"/>
+                        <!-- Inner Star Background -->
+                        <circle cx="32" cy="32" r="24" fill="#2a2a2a" stroke="#B45309" stroke-width="1" opacity="0.9"/>
+                        <!-- Star Shape -->
+                        <path d="M32 8l7.5 15.5L56 26l-12 11.5L47 54l-15-8-15 8 3-16.5L8 26l16.5-2.5L32 8z" fill="url(#gold-gradient)" stroke="#FFFFFF" stroke-width="1.5"/>
+                    </g>
+                </svg>
+            `);
+
+            // Add Mystery Icon (Modern Question Mark)
+            addImage('mystery-icon', `
+                <svg width="56" height="56" viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="mystery-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:#9d00ff;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#6a00ff;stop-opacity:1" />
+                        </linearGradient>
+                        <filter id="mystery-shadow">
+                            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.5"/>
+                        </filter>
+                    </defs>
+                    <g filter="url(#mystery-shadow)">
+                        <!-- Background Hexagon-ish shape -->
+                        <path d="M28 4 L52 16 L52 40 L28 52 L4 40 L4 16 Z" fill="#1a1a1a" stroke="url(#mystery-gradient)" stroke-width="2.5"/>
+                        <!-- Question Mark -->
+                        <text x="50%" y="50%" text-anchor="middle" dy=".35em" font-family="Arial, sans-serif" font-weight="900" font-size="32" fill="url(#mystery-gradient)" stroke="#ffffff" stroke-width="1">?</text>
+                    </g>
+                </svg>
+            `);
+
             // Add empty GeoJSON source for quest markers
             map.addSource('quests', {
                 type: 'geojson',
@@ -283,36 +371,16 @@ export default function MapView({ className }: MapViewProps) {
                 },
             });
 
-            // Add Circle Layer for MYSTERY quests (yellow)
-            map.addLayer({
-                id: 'quest-mystery-point',
-                type: 'circle',
-                source: 'quests',
-                filter: ['==', ['get', 'questType'], 'MYSTERY'],
-                paint: {
-                    'circle-radius': 14, // Larger
-                    'circle-color': '#FFD700',
-                    'circle-stroke-width': 3,
-                    'circle-stroke-color': '#000000',
-                },
-            });
-
-            // Add Symbol Layer for MYSTERY quests (yellow question mark)
+            // Add Symbol Layer for MYSTERY quests (Using SVG Icon)
             map.addLayer({
                 id: 'quest-mystery',
                 type: 'symbol',
                 source: 'quests',
                 filter: ['==', ['get', 'questType'], 'MYSTERY'],
                 layout: {
-                    'text-field': '?',
-                    'text-font': ['Noto Sans Regular'],
-                    'text-size': 24, // Larger
-                    'text-offset': [0, 0],
-                    'text-anchor': 'center',
+                    'icon-image': 'mystery-icon',
+                    'icon-size': 1.0,
                     'icon-allow-overlap': true,
-                },
-                paint: {
-                    'text-color': '#000000', // Black text on yellow circle
                 },
             });
 
@@ -332,11 +400,58 @@ export default function MapView({ className }: MapViewProps) {
                 },
             });
 
+            // --- MILESTONE QUEST LAYERS ---
+
+            // Add Large Range Circle Layer for MILESTONE quests
+            map.addLayer({
+                id: 'quest-milestone-range',
+                type: 'circle',
+                source: 'quests',
+                filter: ['==', ['get', 'questType'], 'MILESTONE'],
+                paint: {
+                    'circle-radius': 200, // Large visual range (~200m equivalent at zoom 15)
+                    'circle-color': '#FFD700',
+                    'circle-opacity': 0.2,
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': '#FFD700',
+                    'circle-stroke-opacity': 0.5,
+                },
+            });
+
+            // Add Pulsing Circle Layer for MILESTONE quests (Gold)
+            map.addLayer({
+                id: 'quest-milestone-glow',
+                type: 'circle',
+                source: 'quests',
+                filter: ['==', ['get', 'questType'], 'MILESTONE'],
+                paint: {
+                    'circle-radius': 25,
+                    'circle-color': '#FFD700',
+                    'circle-opacity': 0.3,
+                    'circle-blur': 0.5,
+                },
+            });
+
+            // Add Symbol Layer for MILESTONE quests (Using SVG Icon)
+            map.addLayer({
+                id: 'quest-milestone-icon',
+                type: 'symbol',
+                source: 'quests',
+                filter: ['==', ['get', 'questType'], 'MILESTONE'],
+                layout: {
+                    'icon-image': 'milestone-icon',
+                    'icon-size': 1.0,
+                    'icon-allow-overlap': true,
+                    'icon-anchor': 'center',
+                },
+            });
+
             // Click handler for ALL quest layers
             const questLayers = [
                 'quest-movement', 'quest-movement-range',
                 'quest-checkin', 'quest-checkin-range',
-                'quest-mystery', 'quest-mystery-radius', 'quest-mystery-point'
+                'quest-mystery', 'quest-mystery-radius',
+                'quest-milestone-icon', 'quest-milestone-range'
             ];
 
             questLayers.forEach(layerId => {
@@ -363,6 +478,9 @@ export default function MapView({ className }: MapViewProps) {
                     map.getCanvas().style.cursor = '';
                 });
             });
+
+            // Force update markers after load to ensure they render
+            updateQuestMarkers();
         });
 
         // Add navigation controls
@@ -378,60 +496,49 @@ export default function MapView({ className }: MapViewProps) {
         );
 
         // Add geolocate control (for real GPS)
-        map.addControl(
-            new maplibregl.GeolocateControl({
-                positionOptions: {
-                    enableHighAccuracy: true,
-                },
-                trackUserLocation: true,
-            }),
-            'top-right'
-        );
+    }, [activeQuests]);
 
-        // Cleanup function
+    // Also trigger update when map style finishes loading (fixes race condition)
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map) return;
+
+        const onStyleLoad = () => {
+            console.log('[MapView] Style loaded, updating markers...');
+            updateQuestMarkers();
+        };
+
+        if (map.isStyleLoaded()) {
+            updateQuestMarkers();
+        } else {
+            map.on('styledata', onStyleLoad);
+        }
+
         return () => {
-            console.log('[MapView] Cleaning up map...');
-            map.remove();
-            mapRef.current = null;
-            mapInitialized.current = false;
+            map.off('styledata', onStyleLoad);
         };
     }, []);
 
-    // Update quest markers using WebGL Symbol Layers (NOT HTML Markers)
+    // Listen for quest focus events from QuestPanel
     useEffect(() => {
-        const map = mapRef.current;
-        if (!map || !map.isStyleLoaded()) return;
+        const handleQuestFocus = (e: Event) => {
+            const customEvent = e as CustomEvent;
+            const { lat, lng } = customEvent.detail;
+            const map = mapRef.current;
 
-        // Convert quests to GeoJSON features
-        const features = activeQuests
-            .filter((quest) => quest.targetCoordinates)
-            .map((quest) => ({
-                type: 'Feature' as const,
-                properties: {
-                    questId: quest.id,
-                    questType: quest.type,
-                    title: quest.title,
-                    radiusMeters: quest.radiusMeters || 50,
-                },
-                geometry: {
-                    type: 'Point' as const,
-                    coordinates: [
-                        quest.targetCoordinates!.lng,
-                        quest.targetCoordinates!.lat,
-                    ],
-                },
-            }));
+            if (map && lat && lng) {
+                map.flyTo({
+                    center: [lng, lat],
+                    zoom: 16,
+                    essential: true,
+                    speed: 1.2
+                });
+            }
+        };
 
-        // Update GeoJSON source
-        const source = map.getSource('quests') as maplibregl.GeoJSONSource;
-        if (source) {
-            source.setData({
-                type: 'FeatureCollection',
-                features,
-            });
-            console.log(`[MapView] Updated quest markers: ${features.length} quests`);
-        }
-    }, [activeQuests]);
+        window.addEventListener('quest-focus', handleQuestFocus);
+        return () => window.removeEventListener('quest-focus', handleQuestFocus);
+    }, []);
 
     // Update player marker when location changes (HTML marker OK for single element)
     useEffect(() => {
@@ -442,23 +549,31 @@ export default function MapView({ className }: MapViewProps) {
             // Create circle with directional arrow on edge
             const el = document.createElement('div');
             el.className = 'player-marker';
-            el.style.width = '40px';
-            el.style.height = '40px';
+            el.style.width = '56px';
+            el.style.height = '56px';
             // Create inner rotating container
             el.innerHTML = `
                 <div class="player-marker-inner" style="width: 100%; height: 100%; transform-origin: center;">
-                    <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%;">
+                    <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));">
                         <defs>
-                            <filter id="player-shadow">
-                                <feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.3"/>
+                            <linearGradient id="player-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#1d4ed8;stop-opacity:1" />
+                            </linearGradient>
+                            <filter id="inner-glow">
+                                <feGaussianBlur stdDeviation="1" result="blur"/>
+                                <feComposite in="SourceGraphic" in2="blur" operator="arithmetic" k2="1" k3="1"/>
                             </filter>
                         </defs>
-                        <!-- Player circle (center) -->
-                        <circle cx="20" cy="20" r="8" fill="#3b82f6" stroke="white" stroke-width="2.5" filter="url(#player-shadow)"/>
-                        <!-- Directional arrow at top edge (12 o'clock) -->
-                        <g filter="url(#player-shadow)">
-                            <path d="M20 2 L24 10 L20 8 L16 10 Z" fill="#ef4444" stroke="white" stroke-width="1.5"/>
-                        </g>
+                        
+                        <!-- Main Body (Larger) -->
+                        <circle cx="24" cy="24" r="18" fill="url(#player-gradient)" stroke="#ffffff" stroke-width="3"/>
+                        
+                        <!-- Inner Detail -->
+                        <circle cx="24" cy="24" r="8" fill="#60a5fa" fill-opacity="0.5"/>
+                        
+                        <!-- Directional Arrow (Adjusted for larger size) -->
+                        <path d="M24 2 L32 14 L24 11 L16 14 Z" fill="#ef4444" stroke="#ffffff" stroke-width="1.5" stroke-linejoin="round"/>
                     </svg>
                 </div>
             `;

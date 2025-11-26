@@ -19,6 +19,22 @@ export default function Home() {
     const updateLocation = useQuestStore((state) => state.updateLocation);
     const addQuest = useQuestStore((state) => state.addQuest);
     const setGPSMode = useQuestStore((state) => state.setGPSMode);
+    const currentLocation = useQuestStore((state) => state.currentLocation);
+
+    // GPS Timeout Fallback: If Real GPS fails to initialize within 10s, switch to Mock Mode
+    useEffect(() => {
+        if (useMockGPS || currentLocation) return;
+
+        const timer = setTimeout(() => {
+            // Double-check state to be sure
+            if (!useQuestStore.getState().currentLocation) {
+                console.warn('[Home] GPS initialization timed out (10s). Falling back to Mock Mode.');
+                setGPSMode(true);
+            }
+        }, 10000);
+
+        return () => clearTimeout(timer);
+    }, [useMockGPS, currentLocation, setGPSMode]);
 
     // Drawer State: which drawer is open ('none', 'quests', 'controls', 'debug')
     const [openDrawer, setOpenDrawer] = useState<'none' | 'quests' | 'controls' | 'debug'>('none');
@@ -121,6 +137,9 @@ export default function Home() {
                                             }
                                         })
                                         .catch(err => console.error('[Home] Auto-scan failed:', err));
+
+                                    // Generate Milestone Quests
+                                    useQuestStore.getState().generateMilestoneQuests();
                                 }
                             },
                             (error) => {
@@ -140,7 +159,21 @@ export default function Home() {
             const state = useQuestStore.getState();
             if (state.activeQuests.length === 0) {
                 console.log('[Home] Spawning quests immediately in mock mode');
+                // CRITICAL: Update store with location BEFORE generating quests
+                updateLocation({
+                    lat: mockLocation.lat,
+                    lng: mockLocation.lng,
+                    timestamp: Date.now(),
+                    speed: 0
+                });
+
+                console.log('[Home] Initializing local quests...');
                 initializeQuests(mockLocation.lat, mockLocation.lng);
+
+                console.log('[Home] Generating milestone quests...');
+                useQuestStore.getState().generateMilestoneQuests()
+                    .then(() => console.log('[Home] Milestone generation complete.'))
+                    .catch(err => console.error('[Home] Milestone generation failed:', err));
             }
         }
 
@@ -167,6 +200,9 @@ export default function Home() {
                             result.quests.forEach((quest) => addQuest(quest));
                         }
                     }).catch(err => console.error('[Home] Auto-scan failed:', err));
+
+                    // Generate Milestone Quests
+                    useQuestStore.getState().generateMilestoneQuests();
                 }
             },
             (error) => {

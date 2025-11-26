@@ -38,7 +38,7 @@ export class QuestManager {
      * Check if user is within check-in radius
      */
     static isCheckInComplete(quest: Quest, currentLocation: UserLocation): boolean {
-        if ((quest.type !== 'CHECKIN' && quest.type !== 'MYSTERY') || !quest.targetCoordinates) {
+        if ((quest.type !== 'CHECKIN' && quest.type !== 'MYSTERY' && quest.type !== 'MILESTONE') || !quest.targetCoordinates) {
             return false;
         }
 
@@ -66,7 +66,7 @@ export class QuestManager {
             return quest.targetDistanceMeters ? progress >= quest.targetDistanceMeters : false;
         }
 
-        if (quest.type === 'CHECKIN' || quest.type === 'MYSTERY') {
+        if (quest.type === 'CHECKIN' || quest.type === 'MYSTERY' || quest.type === 'MILESTONE') {
             return this.isCheckInComplete(quest, currentLocation);
         }
 
@@ -86,7 +86,7 @@ export class QuestManager {
             return Math.min(100, (progress / quest.targetDistanceMeters) * 100);
         }
 
-        if ((quest.type === 'CHECKIN' || quest.type === 'MYSTERY') && currentLocation) {
+        if ((quest.type === 'CHECKIN' || quest.type === 'MYSTERY' || quest.type === 'MILESTONE') && currentLocation) {
             return this.isCheckInComplete(quest, currentLocation) ? 100 : 0;
         }
 
@@ -100,7 +100,7 @@ export class QuestManager {
         quest: Quest,
         currentLocation: UserLocation
     ): number | null {
-        if ((quest.type !== 'CHECKIN' && quest.type !== 'MYSTERY') || !quest.targetCoordinates) {
+        if ((quest.type !== 'CHECKIN' && quest.type !== 'MYSTERY' && quest.type !== 'MILESTONE') || !quest.targetCoordinates) {
             return null;
         }
 

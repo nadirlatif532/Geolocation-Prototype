@@ -3,13 +3,16 @@
  * Follows the exact structure from rules.md
  */
 
-export type QuestType = 'MOVEMENT' | 'CHECKIN' | 'DAILY' | 'WEEKLY' | 'MYSTERY';
+export type QuestType = 'MOVEMENT' | 'CHECKIN' | 'DAILY' | 'WEEKLY' | 'MYSTERY' | 'MILESTONE';
 
 export interface Quest {
     id: string;
     type: QuestType;
     title: string;
     description: string;
+    lore?: string; // Rich flavor text for milestones
+    refreshType?: 'WEEKLY' | 'DAILY' | 'NONE';
+    expirationDate?: Date;
     // For Movement Quests
     targetDistanceMeters?: number;
     currentDistanceMeters?: number;
