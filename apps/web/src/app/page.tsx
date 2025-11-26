@@ -85,6 +85,63 @@ export default function Home() {
 
         console.log(`[Home] Starting location service. Mock Mode: ${useMockGPS}`);
 
+        // Check if GPS permission is already granted and get immediate position
+        if (!useMockGPS && 'permissions' in navigator) {
+            navigator.permissions.query({ name: 'geolocation' as PermissionName })
+                .then(result => {
+                    if (result.state === 'granted') {
+                        console.log('[Home] GPS permission already granted. Getting immediate position...');
+
+                        // Get current position immediately to spawn quests faster
+                        navigator.geolocation.getCurrentPosition(
+                            (position) => {
+                                const location = {
+                                    lat: position.coords.latitude,
+                                    lng: position.coords.longitude,
+                                    timestamp: Date.now(),
+                                    speed: position.coords.speed || 0
+                                };
+
+                                updateLocation(location);
+
+                                // Initialize quests immediately
+                                const state = useQuestStore.getState();
+                                if (state.activeQuests.length === 0) {
+                                    console.log('[Home] Spawning quests immediately with granted permission');
+                                    initializeQuests(location.lat, location.lng);
+
+                                    // Scan for server-side quests
+                                    apiService.scanQuests(userId, location.lat, location.lng)
+                                        .then((result) => {
+                                            if (result.quests && Array.isArray(result.quests)) {
+                                                result.quests.forEach((quest) => addQuest(quest));
+                                            }
+                                        })
+                                        .catch(err => console.error('[Home] Auto-scan failed:', err));
+                                }
+                            },
+                            (error) => {
+                                console.warn('[Home] Immediate position fetch failed:', error);
+                                // Will fallback to waiting for first update from startWatching
+                            }
+                        );
+                    }
+                })
+                .catch(err => {
+                    console.warn('[Home] Permissions API not supported:', err);
+                    // Will fallback to waiting for first update from startWatching
+                });
+        } else if (useMockGPS) {
+            // For mock GPS, initialize immediately at Athens
+            const mockLocation = { lat: 37.9838, lng: 23.7275 };
+            const state = useQuestStore.getState();
+            if (state.activeQuests.length === 0) {
+                console.log('[Home] Spawning quests immediately in mock mode');
+                initializeQuests(mockLocation.lat, mockLocation.lng);
+            }
+        }
+
+        // Start continuous watching
         service.startWatching(
             (location) => {
                 // Update local state
@@ -95,7 +152,7 @@ export default function Home() {
                     console.error('[Home] Failed to send location update:', error);
                 });
 
-                // Initialize quests if this is the first location update
+                // Initialize quests if this is the first location update (fallback)
                 // We check if activeQuests is empty to ensure we only do this once
                 const state = useQuestStore.getState();
                 if (state.activeQuests.length === 0) {
@@ -138,7 +195,7 @@ export default function Home() {
             <div className="md:hidden">
                 {/* Quests Drawer */}
                 <div
-                    className={`fixed top-4 left-0 z-40 transition-transform duration-300 ease-in-out ${openDrawer === 'quests' ? 'translate-x-0' : '-translate-x-full'
+                    className={`fixed top-[35%] left-0 z-40 transition-transform duration-300 ease-in-out ${openDrawer === 'quests' ? 'translate-x-0' : '-translate-x-full'
                         }`}
                     style={{ maxWidth: '80vw' }}
                 >
@@ -159,7 +216,7 @@ export default function Home() {
 
                 {/* Controls Drawer */}
                 <div
-                    className={`fixed top-1/3 left-0 z-40 transition-transform duration-300 ease-in-out ${openDrawer === 'controls' ? 'translate-x-0' : '-translate-x-full'
+                    className={`fixed top-1/2 -translate-y-1/2 left-0 z-40 transition-transform duration-300 ease-in-out ${openDrawer === 'controls' ? 'translate-x-0' : '-translate-x-full'
                         }`}
                     style={{ maxWidth: '80vw' }}
                 >
@@ -180,12 +237,12 @@ export default function Home() {
 
                 {/* Debug Drawer */}
                 <div
-                    className={`fixed bottom-4 left-0 z-40 transition-transform duration-300 ease-in-out ${openDrawer === 'debug' ? 'translate-x-0' : '-translate-x-full'
+                    className={`fixed top-[60%] left-0 z-40 transition-transform duration-300 ease-in-out ${openDrawer === 'debug' ? 'translate-x-0' : '-translate-x-full'
                         }`}
                     style={{ maxWidth: '80vw' }}
                 >
                     <div className="flex items-start">
-                        <div className="bg-card/95 backdrop-blur-sm rounded-r-xl shadow-2xl border-r border-t border-b border-border p-4 max-h-[60vh] overflow-auto">
+                        <div className="bg-card/95 backdrop-blur-sm rounded-r-xl shadow-2xl border-r border-t border-b border-border max-h-[60vh] overflow-hidden">
                             <DebugMenu />
                         </div>
                         <button
@@ -205,7 +262,7 @@ export default function Home() {
                 {openDrawer !== 'quests' && (
                     <button
                         onClick={() => toggleDrawer('quests')}
-                        className="fixed top-4 left-0 z-30 px-2 py-6 rounded-r-lg bg-card/95 backdrop-blur-sm text-muted-foreground border border-border shadow-lg transition-all hover:bg-primary hover:text-primary-foreground"
+                        className="fixed top-[35%] left-0 z-30 px-2 py-6 rounded-r-lg bg-card/95 backdrop-blur-sm text-muted-foreground border border-border shadow-lg transition-all hover:bg-primary hover:text-primary-foreground"
                         style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
                     >
                         <span className="text-sm font-bold tracking-wider">QUESTS</span>
@@ -215,7 +272,7 @@ export default function Home() {
                 {openDrawer !== 'controls' && (
                     <button
                         onClick={() => toggleDrawer('controls')}
-                        className="fixed top-1/3 left-0 z-30 px-2 py-6 rounded-r-lg bg-card/95 backdrop-blur-sm text-muted-foreground border border-border shadow-lg transition-all hover:bg-primary hover:text-primary-foreground"
+                        className="fixed top-1/2 -translate-y-1/2 left-0 z-30 px-2 py-6 rounded-r-lg bg-card/95 backdrop-blur-sm text-muted-foreground border border-border shadow-lg transition-all hover:bg-primary hover:text-primary-foreground"
                         style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
                     >
                         <span className="text-sm font-bold tracking-wider">CONTROLS</span>
@@ -225,7 +282,7 @@ export default function Home() {
                 {openDrawer !== 'debug' && (
                     <button
                         onClick={() => toggleDrawer('debug')}
-                        className="fixed bottom-4 left-0 z-30 px-2 py-6 rounded-r-lg bg-card/95 backdrop-blur-sm text-muted-foreground border border-border shadow-lg transition-all hover:bg-primary hover:text-primary-foreground"
+                        className="fixed top-[60%] left-0 z-30 px-2 py-6 rounded-r-lg bg-card/95 backdrop-blur-sm text-muted-foreground border border-border shadow-lg transition-all hover:bg-primary hover:text-primary-foreground"
                         style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
                     >
                         <span className="text-sm font-bold tracking-wider">DEBUG</span>
