@@ -17,7 +17,7 @@ export default function MapView({ className }: MapViewProps) {
     const currentLocation = useQuestStore((state) => state.currentLocation);
     const activeQuests = useQuestStore((state) => state.activeQuests);
 
-    // Initialize map with REFGUARD to prevent React 18 Strict Mode double-mounting
+    // Initialize map with REF GUARD to prevent React 18 Strict Mode double-mounting
     useEffect(() => {
         if (!mapContainer.current) return;
 
@@ -36,7 +36,9 @@ export default function MapView({ className }: MapViewProps) {
             style: 'https://tiles.openfreemap.org/styles/liberty',
             center: [23.7275, 37.9838], // Athens [lng, lat]
             zoom: 13,
-            attributionControl: true,
+            attributionControl: {
+                compact: true,
+            },
         });
 
         mapRef.current = map;
