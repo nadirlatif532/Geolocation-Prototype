@@ -14,6 +14,7 @@ interface QuestState {
 
     // Service mode
     useMockGPS: boolean;
+    quickPlaceEnabled: boolean;
 
     // Actions
     updateLocation: (location: UserLocation) => void;
@@ -22,6 +23,7 @@ interface QuestState {
     completeQuest: (questId: string) => void;
     claimReward: (questId: string) => Promise<void>;
     toggleGPSMode: () => void;
+    toggleQuickPlace: () => void;
     clearQuests: () => void;
 
     // Selectors
@@ -36,6 +38,7 @@ export const useQuestStore = create<QuestState>((set, get) => ({
     completedQuests: [],
     questProgress: new Map(),
     useMockGPS: true, // Default to mock for testing
+    quickPlaceEnabled: false,
 
     // Update user's location
     updateLocation: (location: UserLocation) => {
@@ -215,6 +218,13 @@ export const useQuestStore = create<QuestState>((set, get) => ({
     toggleGPSMode: () => {
         set((state) => ({
             useMockGPS: !state.useMockGPS,
+        }));
+    },
+
+    // Toggle Quick Place mode
+    toggleQuickPlace: () => {
+        set((state) => ({
+            quickPlaceEnabled: !state.quickPlaceEnabled,
         }));
     },
 

@@ -108,6 +108,34 @@ export default function MapView({ className }: MapViewProps) {
         };
         window.addEventListener('debug-spawn-landmark', handleSpawnLandmark);
 
+        // QUICK PLACE: Right-click or Double-click to teleport
+        const handleQuickPlace = (e: maplibregl.MapMouseEvent) => {
+            const { quickPlaceEnabled, updateLocation } = useQuestStore.getState();
+            if (!quickPlaceEnabled) return;
+
+            e.preventDefault(); // Prevent default context menu or zoom
+
+            const { lng, lat } = e.lngLat;
+            console.log('[QuickPlace] Teleporting to:', lat, lng);
+
+            updateLocation({
+                lat,
+                lng,
+                timestamp: Date.now(),
+                speed: 0
+            });
+        };
+
+        map.on('contextmenu', handleQuickPlace);
+        map.on('dblclick', (e) => {
+            const { quickPlaceEnabled } = useQuestStore.getState();
+            if (quickPlaceEnabled) {
+                // Prevent zoom only if quick place is enabled
+                e.preventDefault();
+                handleQuickPlace(e);
+            }
+        });
+
         // Wait for map to load before adding layers
         map.on('load', () => {
             console.log('[MapView] Map loaded, adding quest markers layer...');
@@ -121,51 +149,85 @@ export default function MapView({ className }: MapViewProps) {
                 },
             });
 
-            // Add Symbol Layer for MOVEMENT quests (purple)
+            // Add Circle Layer for MOVEMENT quests (purple)
             map.addLayer({
                 id: 'quest-movement',
+                type: 'circle',
+                source: 'quests',
+                filter: ['==', ['get', 'questType'], 'MOVEMENT'],
+                paint: {
+                    'circle-radius': 8,
+                    'circle-color': '#9d00ff',
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': '#ffffff',
+                },
+            });
+
+            // Add Symbol Layer for MOVEMENT labels
+            map.addLayer({
+                id: 'quest-movement-label',
                 type: 'symbol',
                 source: 'quests',
                 filter: ['==', ['get', 'questType'], 'MOVEMENT'],
                 layout: {
-                    'icon-image': 'marker-15',
-                    'icon-size': 1.5,
-                    'icon-allow-overlap': true,
                     'text-field': ['get', 'title'],
-                    'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+                    'text-font': ['Noto Sans Regular'],
                     'text-offset': [0, 1.5],
                     'text-anchor': 'top',
                     'text-size': 12,
                 },
                 paint: {
-                    'icon-color': '#9d00ff',
                     'text-color': '#ffffff',
                     'text-halo-color': '#000000',
                     'text-halo-width': 1,
                 },
             });
 
-            // Add Symbol Layer for CHECKIN quests (pink)
+            // Add Circle Layer for CHECKIN quests (pink)
             map.addLayer({
                 id: 'quest-checkin',
+                type: 'circle',
+                source: 'quests',
+                filter: ['==', ['get', 'questType'], 'CHECKIN'],
+                paint: {
+                    'circle-radius': 8,
+                    'circle-color': '#ff0080',
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': '#ffffff',
+                },
+            });
+
+            // Add Symbol Layer for CHECKIN labels
+            map.addLayer({
+                id: 'quest-checkin-label',
                 type: 'symbol',
                 source: 'quests',
                 filter: ['==', ['get', 'questType'], 'CHECKIN'],
                 layout: {
-                    'icon-image': 'star-15',
-                    'icon-size': 1.5,
-                    'icon-allow-overlap': true,
                     'text-field': ['get', 'title'],
-                    'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+                    'text-font': ['Noto Sans Regular'],
                     'text-offset': [0, 1.5],
                     'text-anchor': 'top',
                     'text-size': 12,
                 },
                 paint: {
-                    'icon-color': '#ff0080',
                     'text-color': '#ffffff',
                     'text-halo-color': '#000000',
                     'text-halo-width': 1,
+                },
+            });
+
+            // Add Circle Layer for MYSTERY quests (yellow)
+            map.addLayer({
+                id: 'quest-mystery-point',
+                type: 'circle',
+                source: 'quests',
+                filter: ['==', ['get', 'questType'], 'MYSTERY'],
+                paint: {
+                    'circle-radius': 10,
+                    'circle-color': '#FFD700',
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': '#000000',
                 },
             });
 
@@ -177,16 +239,14 @@ export default function MapView({ className }: MapViewProps) {
                 filter: ['==', ['get', 'questType'], 'MYSTERY'],
                 layout: {
                     'text-field': '?',
-                    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                    'text-font': ['Noto Sans Regular'],
                     'text-size': 20,
                     'text-offset': [0, 0],
                     'text-anchor': 'center',
                     'icon-allow-overlap': true,
                 },
                 paint: {
-                    'text-color': '#FFD700', // Gold
-                    'text-halo-color': '#000000',
-                    'text-halo-width': 2,
+                    'text-color': '#000000', // Black text on yellow circle
                 },
             });
 
@@ -206,28 +266,32 @@ export default function MapView({ className }: MapViewProps) {
                 },
             });
 
-            // Click handler for mystery quests
-            map.on('click', 'quest-mystery-radius', (e) => {
-                if (!e.features || e.features.length === 0) return;
+            // Click handler for ALL quest layers
+            const questLayers = ['quest-movement', 'quest-checkin', 'quest-mystery', 'quest-mystery-radius', 'quest-mystery-point'];
 
-                const feature = e.features[0];
-                const props = feature.properties;
+            questLayers.forEach(layerId => {
+                map.on('click', layerId, (e) => {
+                    if (!e.features || e.features.length === 0) return;
 
-                if (props && props.questId) {
-                    // Dispatch custom event for UI to handle
-                    const event = new CustomEvent('quest-marker-click', {
-                        detail: { questId: props.questId }
-                    });
-                    window.dispatchEvent(event);
-                }
-            });
+                    const feature = e.features[0];
+                    const props = feature.properties;
 
-            // Change cursor on hover
-            map.on('mouseenter', 'quest-mystery-radius', () => {
-                map.getCanvas().style.cursor = 'pointer';
-            });
-            map.on('mouseleave', 'quest-mystery-radius', () => {
-                map.getCanvas().style.cursor = '';
+                    if (props && props.questId) {
+                        // Dispatch custom event for UI to handle
+                        const event = new CustomEvent('quest-marker-click', {
+                            detail: { questId: props.questId }
+                        });
+                        window.dispatchEvent(event);
+                    }
+                });
+
+                // Change cursor on hover
+                map.on('mouseenter', layerId, () => {
+                    map.getCanvas().style.cursor = 'pointer';
+                });
+                map.on('mouseleave', layerId, () => {
+                    map.getCanvas().style.cursor = '';
+                });
             });
         });
 

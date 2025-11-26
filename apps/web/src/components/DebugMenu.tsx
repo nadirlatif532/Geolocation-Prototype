@@ -5,6 +5,7 @@ import { useQuestStore } from '@/store/questStore';
 import { apiService } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { Bug, MapPin, RefreshCw, PlusCircle, X, Minus, Landmark } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 export default function DebugMenu() {
     const [isOpen, setIsOpen] = useState(false);
@@ -13,6 +14,9 @@ export default function DebugMenu() {
     const addQuest = useQuestStore((state) => state.addQuest);
     const clearQuests = useQuestStore((state) => state.clearQuests);
     const userId = useAuthStore((state) => state.userId);
+
+    const quickPlaceEnabled = useQuestStore((state) => state.quickPlaceEnabled);
+    const toggleQuickPlace = useQuestStore((state) => state.toggleQuickPlace);
 
     // Listen for landmark found events from MapView
     useEffect(() => {
@@ -36,15 +40,19 @@ export default function DebugMenu() {
     }, [addQuest]);
 
     const handleSpawnTestQuest = () => {
-        if (!currentLocation) return;
+        console.log('[DebugMenu] Spawning test quest...', currentLocation);
+        if (!currentLocation) {
+            console.error('[DebugMenu] Cannot spawn quest: No current location');
+            return;
+        }
 
         // Calculate a point roughly 5 meters away (0.00005 degrees is approx 5.5m)
         const latOffset = (Math.random() - 0.5) * 0.0001;
         const lngOffset = (Math.random() - 0.5) * 0.0001;
 
-        addQuest({
+        const newQuest = {
             id: `debug-quest-${Date.now()}`,
-            type: 'MYSTERY',
+            type: 'MYSTERY' as const,
             title: 'Debug Quest',
             description: 'A test quest spawned 5m away.',
             targetCoordinates: {
@@ -52,8 +60,11 @@ export default function DebugMenu() {
                 lng: currentLocation.lng + lngOffset,
             },
             radiusMeters: 30,
-            rewards: [{ type: 'EXP', value: 10 }],
-        });
+            rewards: [{ type: 'EXP' as const, value: 10 }],
+        };
+
+        console.log('[DebugMenu] Adding quest:', newQuest);
+        addQuest(newQuest);
     };
 
     const handleSpawnLandmarkQuest = () => {
@@ -160,6 +171,19 @@ export default function DebugMenu() {
                         <RefreshCw className="w-4 h-4 text-orange-500" />
                         Respawn Quests
                     </button>
+
+                    <div className="pt-2 border-t border-destructive/20">
+                        <div className="flex items-center justify-between px-3 py-2">
+                            <span className="text-sm font-medium text-foreground">Quick Place</span>
+                            <Switch
+                                checked={quickPlaceEnabled}
+                                onCheckedChange={toggleQuickPlace}
+                            />
+                        </div>
+                        <p className="px-3 text-xs text-muted-foreground">
+                            Right-click map to teleport
+                        </p>
+                    </div>
                 </div>
             )}
         </div>

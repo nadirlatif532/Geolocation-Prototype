@@ -33,8 +33,18 @@ export default function Home() {
                 // Send to backend with offline queue support
                 apiService.updateLocation(userId, location).catch((error) => {
                     console.error('[Home] Failed to send location update:', error);
-                    // Note: apiService already handles offline queueing, this is just logging
                 });
+
+                // Auto-scan for quests if we have a location and no active quests (initial load)
+                // We can optimize this later to scan periodically or on significant movement
+                const state = useQuestStore.getState();
+                if (state.activeQuests.length === 0) {
+                    apiService.scanQuests(userId, location.lat, location.lng).then((result) => {
+                        if (result.quests && Array.isArray(result.quests)) {
+                            result.quests.forEach((quest) => addQuest(quest));
+                        }
+                    }).catch(err => console.error('[Home] Auto-scan failed:', err));
+                }
             },
             (error) => {
                 console.error('Location error:', error);
@@ -44,7 +54,7 @@ export default function Home() {
         return () => {
             service.stopWatching();
         };
-    }, [useMockGPS, updateLocation]);
+    }, [useMockGPS, updateLocation, addQuest]);
 
     // Add sample quests on mount
     useEffect(() => {

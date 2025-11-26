@@ -15,6 +15,8 @@ export default function QuestDialog() {
     const currentLocation = useQuestStore((state) => state.currentLocation);
     const claimReward = useQuestStore((state) => state.claimReward);
 
+    const completeQuest = useQuestStore((state) => state.completeQuest);
+
     useEffect(() => {
         const handleQuestClick = (e: Event) => {
             const customEvent = e as CustomEvent;
@@ -44,6 +46,9 @@ export default function QuestDialog() {
 
     const handleClaim = async () => {
         if (selectedQuest) {
+            // Mark as completed first
+            completeQuest(selectedQuest.id);
+            // Then claim rewards
             await claimReward(selectedQuest.id);
             setIsOpen(false);
             setSelectedQuest(null);
