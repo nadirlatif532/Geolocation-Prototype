@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter, Orbitron } from 'next/font/google';
 import './globals.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -13,16 +13,17 @@ const orbitron = Orbitron({
     variable: '--font-orbitron',
 });
 
+export const viewport: Viewport = {
+    themeColor: '#0a0a0a',
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+};
+
 export const metadata: Metadata = {
     title: 'Couch Heroes - Geolocation MMO',
     description: 'Hybrid web/mobile geolocation companion app for MMO adventures',
     manifest: '/manifest.json',
-    themeColor: '#0a0a0a',
-    viewport: {
-        width: 'device-width',
-        initialScale: 1,
-        maximumScale: 1,
-    },
 };
 
 export default function RootLayout({

@@ -1,6 +1,6 @@
 import { UserLocation } from '@couch-heroes/shared';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 const OFFLINE_QUEUE_KEY = 'pending_updates';
 
 interface LocationUpdate {

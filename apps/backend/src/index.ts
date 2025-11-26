@@ -114,7 +114,7 @@ app.get('/quests', async (c) => {
     });
 });
 
-const port = parseInt(process.env.PORT || '3001');
+const port = parseInt(process.env.PORT || '3002');
 
 console.log(`[Hono Backend] Starting server on port ${port}...`);
 
