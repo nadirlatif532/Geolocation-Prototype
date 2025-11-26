@@ -298,7 +298,7 @@ export default function Home() {
                 <QuestPanel className="absolute top-6 right-20 z-20 pointer-events-auto" />
                 <ControlPanel className="absolute top-6 left-6 z-20 pointer-events-auto" />
                 <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
-                    <DebugMenu />
+                    <DebugMenu className="static transform-none" />
                 </div>
             </div>
 

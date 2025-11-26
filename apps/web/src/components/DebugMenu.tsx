@@ -6,10 +6,18 @@ import { apiService } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { Bug, MapPin, RefreshCw, PlusCircle, X, Minus, Landmark, Move } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
 
 export default function DebugMenu({ className, embedded = false }: { className?: string; embedded?: boolean }) {
     const [isOpen, setIsOpen] = useState(embedded);
     const [isMinimized, setIsMinimized] = useState(false);
+
+    // Reset minimized state when in embedded mode (mobile drawer)
+    useEffect(() => {
+        if (embedded) {
+            setIsMinimized(false);
+        }
+    }, [embedded]);
     const currentLocation = useQuestStore((state) => state.currentLocation);
     const addQuest = useQuestStore((state) => state.addQuest);
     const clearQuests = useQuestStore((state) => state.clearQuests);
@@ -110,7 +118,10 @@ export default function DebugMenu({ className, embedded = false }: { className?:
         return (
             <button
                 onClick={() => { setIsOpen(true); setIsMinimized(false); }}
-                className={`fixed bottom-6 right-6 z-50 bg-destructive text-destructive-foreground p-3 rounded-full shadow-lg hover:bg-destructive/90 transition-all ${className || ''}`}
+                className={cn(
+                    "fixed bottom-6 right-6 z-50 bg-destructive text-destructive-foreground p-3 rounded-full shadow-lg hover:bg-destructive/90 transition-all",
+                    className
+                )}
                 title="Debug Menu"
             >
                 <Bug className="w-6 h-6" />
@@ -118,9 +129,12 @@ export default function DebugMenu({ className, embedded = false }: { className?:
         );
     }
 
-    const containerClasses = embedded
-        ? `w-full bg-card ${className || ''}`
-        : `fixed bottom-6 right-6 z-50 bg-card border border-destructive/50 rounded-lg shadow-2xl overflow-hidden transition-all duration-300 ${isMinimized ? 'w-64 h-12' : 'w-64'} ${className || ''}`;
+    const containerClasses = cn(
+        embedded
+            ? "w-full bg-card"
+            : `fixed bottom-6 right-6 z-50 bg-card border border-destructive/50 rounded-lg shadow-2xl overflow-hidden transition-all duration-300 ${isMinimized ? 'w-64 h-12' : 'w-64'}`,
+        className
+    );
 
     return (
         <div className={containerClasses}>
