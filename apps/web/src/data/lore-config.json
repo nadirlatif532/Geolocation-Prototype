@@ -1,0 +1,50 @@
+[
+    {
+        "id": "lore_architect_trace",
+        "title": "Faint Signal",
+        "loreText": "Your device picks up a rhythmic static. It matches the old signatures of Digit1, the Architect. Could this be a remnant of his original code?",
+        "rewardId": "data_fragment_01"
+    },
+    {
+        "id": "lore_corruption_spore",
+        "title": "Corrupted Soil",
+        "loreText": "The ground here is discolored, pulsing with a faint violet hue. It's a manifestation of Drystan's virus. Better scan it before it spreads.",
+        "rewardId": "antivirus_sample"
+    },
+    {
+        "id": "lore_green_cache",
+        "title": "Overgrown Stash",
+        "loreText": "Vines have wrapped tightly around a small lockbox. It bears the mark of Cera's Green Faction. Likely supplies for those fighting to maintain the shattered world.",
+        "rewardId": "herbal_pack"
+    },
+    {
+        "id": "lore_yellow_drop",
+        "title": "Smuggler's Drop",
+        "loreText": "A nondescript package tucked behind some debris. The Yellow Faction operates here. Merivia's thieves guild doesn't leave things by accident.",
+        "rewardId": "credit_chip"
+    },
+    {
+        "id": "lore_blue_archive",
+        "title": "Lost Archive",
+        "loreText": "A data drive half-buried in the dust. It looks like Blue Faction property. Nero would kill to get this back into the library.",
+        "rewardId": "lore_entry_42"
+    },
+    {
+        "id": "lore_red_munitions",
+        "title": "Spent Shell casing",
+        "loreText": "Heavy caliber casings litter the area. Agni's Red Faction was here recently. The metal is still warm.",
+        "rewardId": "ammo_scrap"
+    },
+    {
+        "id": "lore_rift_echo",
+        "title": "Rift Echo",
+        "loreText": "The air shimmers here. A micro-rift caused by past experiments. It feels like the Shard itself is trying to pull apart.",
+        "rewardId": "rift_dust"
+    },
+    {
+        "id": "lore_ancient_coin",
+        "title": "Ancient Coin",
+        "loreText": "You spot a glint in the rubble. It looks like an ancient coin dropped by a merchant centuries ago, before the Shard broke.",
+        "rewardId": "ancient_coin"
+    }
+]

@@ -1,6 +1,7 @@
 import { UserLocation } from '@couch-heroes/shared';
+import { questSpawner } from './QuestSpawner';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 const OFFLINE_QUEUE_KEY = 'pending_updates';
 
 interface LocationUpdate {
@@ -23,7 +24,7 @@ interface ScanResponse {
 
 class ApiService {
     private isOnline: boolean = typeof navigator !== 'undefined' ? navigator.onLine : true;
-    private isFlushing: boolean = false;
+    // private isFlushing: boolean = false;
 
     constructor() {
         if (typeof window !== 'undefined') {
@@ -31,7 +32,7 @@ class ApiService {
             window.addEventListener('online', () => {
                 console.log('[API] Network connection restored');
                 this.isOnline = true;
-                this.flushOfflineQueue();
+                // this.flushOfflineQueue();
             });
 
             window.addEventListener('offline', () => {
@@ -54,66 +55,28 @@ class ApiService {
             timestamp: location.timestamp,
         };
 
-        // Check if online
-        if (this.isOnline && navigator.onLine) {
-            try {
-                await this.sendLocationUpdate(payload);
-                console.log('[API] Location update sent successfully');
-            } catch (error) {
-                console.error('[API] Failed to send location update:', error);
-                // If network error, queue it
-                this.queueUpdate(payload);
-            }
-        } else {
-            console.log('[API] Offline - queuing location update');
-            this.queueUpdate(payload);
-        }
+        // CLIENT-ONLY MODE:
+        // In a real backend scenario, we would send this to the server.
+        // For now, we just log it to simulate the "sent" state.
+        console.log('[API] (Client-Only) Location update processed:', payload);
+
+        // Optional: We could store this in localStorage if we wanted a local history
     }
 
     /**
      * Scan for local mystery quests
      */
     async scanQuests(userId: string, lat: number, lng: number): Promise<ScanResponse> {
-        if (!this.isOnline) {
-            console.warn('[API] Cannot scan for quests while offline');
-            return { quests: [] };
-        }
+        // CLIENT-ONLY MODE:
+        // Instead of fetching from API, we generate locally.
+        console.log(`[API] (Client-Only) Scanning for quests for user ${userId} at ${lat}, ${lng}`);
 
-        try {
-            const response = await fetch(`${API_BASE_URL}/quests/scan`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ userId, lat, lng }),
-            });
+        // Simulate network delay for realism
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
+        const quests = questSpawner.spawnLocalQuests(lat, lng);
 
-            return await response.json();
-        } catch (error) {
-            console.error('[API] Failed to scan for quests:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Send location update to backend
-     */
-    private async sendLocationUpdate(payload: LocationUpdate): Promise<void> {
-        const response = await fetch(`${API_BASE_URL}/location/update`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
+        return { quests };
     }
 
     /**
@@ -150,55 +113,6 @@ class ApiService {
             console.error('[API] Failed to read offline queue:', error);
             return [];
         }
-    }
-
-    /**
-     * Flush queued updates when back online
-     */
-    async flushOfflineQueue(): Promise<void> {
-        if (this.isFlushing || !this.isOnline) return;
-
-        this.isFlushing = true;
-        const queue = this.getOfflineQueue();
-
-        if (queue.length === 0) {
-            this.isFlushing = false;
-            return;
-        }
-
-        console.log(`[API] Flushing ${queue.length} queued updates...`);
-
-        const failedUpdates: QueuedUpdate[] = [];
-
-        for (const queuedUpdate of queue) {
-            try {
-                await this.sendLocationUpdate(queuedUpdate.payload);
-                console.log(`[API] Successfully sent queued update from ${new Date(queuedUpdate.timestamp).toISOString()}`);
-            } catch (error) {
-                console.error('[API] Failed to send queued update:', error);
-
-                // Retry up to 3 times
-                if (queuedUpdate.retries < 3) {
-                    failedUpdates.push({
-                        ...queuedUpdate,
-                        retries: queuedUpdate.retries + 1,
-                    });
-                } else {
-                    console.warn('[API] Dropping update after 3 retries');
-                }
-            }
-
-            // Small delay to avoid overwhelming the server
-            await new Promise((resolve) => setTimeout(resolve, 100));
-        }
-
-        // Update queue with failed items
-        if (typeof window !== 'undefined') {
-            localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(failedUpdates));
-            console.log(`[API] Queue flush complete. ${failedUpdates.length} items remaining`);
-        }
-
-        this.isFlushing = false;
     }
 
     /**
