@@ -33,6 +33,7 @@ export class GeolocationService {
                     lng: position.coords.longitude,
                     timestamp: position.timestamp,
                     speed: position.coords.speed || 0, // m/s
+                    heading: position.coords.heading ?? undefined, // degrees, null if stationary
                 };
 
                 this.lastLocation = location;
@@ -73,6 +74,7 @@ export class GeolocationService {
                         lng: position.coords.longitude,
                         timestamp: position.timestamp,
                         speed: position.coords.speed || 0,
+                        heading: position.coords.heading ?? undefined,
                     };
                     resolve(location);
                 },

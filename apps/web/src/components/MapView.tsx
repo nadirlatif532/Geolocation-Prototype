@@ -439,12 +439,31 @@ export default function MapView({ className }: MapViewProps) {
         if (!map || !currentLocation) return;
 
         if (!playerMarker.current) {
+            // Create circle with directional arrow on edge
             const el = document.createElement('div');
             el.className = 'player-marker';
-            el.style.width = '24px';
-            el.style.height = '24px';
+            el.style.width = '40px';
+            el.style.height = '40px';
+            // Create inner rotating container
+            el.innerHTML = `
+                <div class="player-marker-inner" style="width: 100%; height: 100%; transform-origin: center;">
+                    <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%;">
+                        <defs>
+                            <filter id="player-shadow">
+                                <feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.3"/>
+                            </filter>
+                        </defs>
+                        <!-- Player circle (center) -->
+                        <circle cx="20" cy="20" r="8" fill="#3b82f6" stroke="white" stroke-width="2.5" filter="url(#player-shadow)"/>
+                        <!-- Directional arrow at top edge (12 o'clock) -->
+                        <g filter="url(#player-shadow)">
+                            <path d="M20 2 L24 10 L20 8 L16 10 Z" fill="#ef4444" stroke="white" stroke-width="1.5"/>
+                        </g>
+                    </svg>
+                </div>
+            `;
 
-            playerMarker.current = new maplibregl.Marker({ element: el })
+            playerMarker.current = new maplibregl.Marker({ element: el, rotationAlignment: 'map' })
                 .setLngLat([currentLocation.lng, currentLocation.lat])
                 .addTo(map);
 
@@ -458,6 +477,16 @@ export default function MapView({ className }: MapViewProps) {
             map.panTo([currentLocation.lng, currentLocation.lat], {
                 duration: 300,
             });
+        }
+
+        // Update rotation based on heading - rotate inner container only
+        if (playerMarker.current && currentLocation.heading !== undefined) {
+            const element = playerMarker.current.getElement();
+            const inner = element.querySelector('.player-marker-inner') as HTMLElement;
+            if (inner) {
+                inner.style.transition = 'transform 0.3s ease-out';
+                inner.style.transform = `rotate(${currentLocation.heading}deg)`;
+            }
         }
     }, [currentLocation]);
 

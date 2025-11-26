@@ -23,6 +23,7 @@ export class MockLocationService {
             lng: initialLng,
             timestamp: Date.now(),
             speed: 0,
+            heading: 0, // Start facing North
         };
 
         this.setupKeyboardListeners();
@@ -122,11 +123,22 @@ export class MockLocationService {
         const newLng = this.currentLocation.lng + deltaLngDegrees;
         const newTimestamp = Date.now();
 
+        // Calculate heading (bearing) from movement direction
+        // 0° = North, 90° = East, 180° = South, 270° = West
+        let heading = this.currentLocation.heading ?? 0;
+        if (deltaLat !== 0 || deltaLng !== 0) {
+            // atan2(x, y) gives angle from north in radians
+            // We use deltaLng for x and deltaLat for y
+            const radians = Math.atan2(deltaLng, deltaLat);
+            heading = (radians * 180 / Math.PI + 360) % 360; // Convert to degrees, ensure 0-360
+        }
+
         this.currentLocation = {
             lat: newLat,
             lng: newLng,
             timestamp: newTimestamp,
             speed: this.pressedKeys.size > 0 ? this.speedMps : 0,
+            heading,
         };
     }
 
@@ -174,6 +186,7 @@ export class MockLocationService {
             lng,
             timestamp: Date.now(),
             speed: 0,
+            heading: this.currentLocation.heading, // Preserve heading when teleporting
         };
     }
 }

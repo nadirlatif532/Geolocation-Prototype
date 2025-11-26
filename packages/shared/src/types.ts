@@ -29,6 +29,7 @@ export interface UserLocation {
     lng: number;
     timestamp: number;
     speed: number; // m/s
+    heading?: number; // degrees, 0-360, where 0 is North (clockwise)
 }
 
 /**
