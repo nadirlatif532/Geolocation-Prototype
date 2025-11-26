@@ -62,7 +62,7 @@ async function processBatch() {
             return; // No new messages
         }
 
-        const [streamKey, entries] = results[0];
+        const [streamKey, entries] = results[0] as [string, [string, string[]][]];
 
         if (entries.length === 0) {
             return;
