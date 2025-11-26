@@ -12,11 +12,11 @@ export class GeolocationService {
      */
     startWatching(
         onLocationUpdate: (location: UserLocation) => void,
-        onError?: (error: GeolocationPositionError) => void
+        onError?: (error: GeolocationPositionError | Error) => void
     ): void {
         if (!navigator.geolocation) {
             console.error('Geolocation not supported');
-            onError?.(new Error('Geolocation not supported') as any);
+            onError?.(new Error('Geolocation not supported'));
             return;
         }
 

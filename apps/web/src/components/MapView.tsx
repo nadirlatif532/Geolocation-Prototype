@@ -43,6 +43,71 @@ export default function MapView({ className }: MapViewProps) {
 
         mapRef.current = map;
 
+        // Listen for debug recenter events
+        const handleRecenter = (e: Event) => {
+            const customEvent = e as CustomEvent;
+            const { lat, lng } = customEvent.detail;
+            map.flyTo({
+                center: [lng, lat],
+                zoom: 15,
+                essential: true
+            });
+        };
+        window.addEventListener('map-recenter', handleRecenter);
+
+        // Listen for debug landmark spawn events
+        const handleSpawnLandmark = (e: Event) => {
+            const customEvent = e as CustomEvent;
+            const { lat, lng } = customEvent.detail;
+
+            // Query for POIs in the current view
+            // Try common POI layer names
+            const features = map.queryRenderedFeatures({
+                layers: ['poi', 'poi-label', 'poi_label', 'poi-level-1']
+            });
+
+            let targetLat = lat + (Math.random() - 0.5) * 0.01; // Default fallback: ~1km random
+            let targetLng = lng + (Math.random() - 0.5) * 0.01;
+            let title = 'Unknown Landmark';
+            let description = 'A mysterious location nearby.';
+
+            if (features && features.length > 0) {
+                // Find nearest POI
+                let minDist = Infinity;
+                let nearestFeature = null;
+
+                features.forEach(f => {
+                    if (f.geometry.type === 'Point') {
+                        const coords = f.geometry.coordinates;
+                        // Simple Euclidean distance for comparison (fast)
+                        const dist = Math.pow(coords[1] - lat, 2) + Math.pow(coords[0] - lng, 2);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            nearestFeature = f;
+                        }
+                    }
+                });
+
+                if (nearestFeature) {
+                    const f = nearestFeature as maplibregl.MapGeoJSONFeature;
+                    const geometry = f.geometry as GeoJSON.Point;
+                    const coords = geometry.coordinates;
+                    targetLat = coords[1];
+                    targetLng = coords[0];
+                    title = f.properties?.name || f.properties?.name_en || 'Local Landmark';
+                    description = `Investigate the area around ${title}.`;
+                    console.log('[Debug] Found landmark:', title, coords);
+                }
+            } else {
+                console.log('[Debug] No POIs found, using random location');
+            }
+
+            window.dispatchEvent(new CustomEvent('landmark-found', {
+                detail: { lat: targetLat, lng: targetLng, title, description }
+            }));
+        };
+        window.addEventListener('debug-spawn-landmark', handleSpawnLandmark);
+
         // Wait for map to load before adding layers
         map.on('load', () => {
             console.log('[MapView] Map loaded, adding quest markers layer...');
@@ -104,20 +169,65 @@ export default function MapView({ className }: MapViewProps) {
                 },
             });
 
-            // Add circle layer for check-in radius visualization
+            // Add Symbol Layer for MYSTERY quests (yellow question mark)
             map.addLayer({
-                id: 'quest-checkin-radius',
+                id: 'quest-mystery',
+                type: 'symbol',
+                source: 'quests',
+                filter: ['==', ['get', 'questType'], 'MYSTERY'],
+                layout: {
+                    'text-field': '?',
+                    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                    'text-size': 20,
+                    'text-offset': [0, 0],
+                    'text-anchor': 'center',
+                    'icon-allow-overlap': true,
+                },
+                paint: {
+                    'text-color': '#FFD700', // Gold
+                    'text-halo-color': '#000000',
+                    'text-halo-width': 2,
+                },
+            });
+
+            // Add circle layer for mystery radius
+            map.addLayer({
+                id: 'quest-mystery-radius',
                 type: 'circle',
                 source: 'quests',
-                filter: ['==', ['get', 'questType'], 'CHECKIN'],
+                filter: ['==', ['get', 'questType'], 'MYSTERY'],
                 paint: {
-                    'circle-radius': 10,
-                    'circle-color': '#ff0080',
-                    'circle-opacity': 0.1,
-                    'circle-stroke-width': 2,
-                    'circle-stroke-color': '#ff0080',
-                    'circle-stroke-opacity': 0.3,
+                    'circle-radius': 15, // Visual radius
+                    'circle-color': '#FFD700',
+                    'circle-opacity': 0.2,
+                    'circle-stroke-width': 1,
+                    'circle-stroke-color': '#FFD700',
+                    'circle-stroke-opacity': 0.5,
                 },
+            });
+
+            // Click handler for mystery quests
+            map.on('click', 'quest-mystery-radius', (e) => {
+                if (!e.features || e.features.length === 0) return;
+
+                const feature = e.features[0];
+                const props = feature.properties;
+
+                if (props && props.questId) {
+                    // Dispatch custom event for UI to handle
+                    const event = new CustomEvent('quest-marker-click', {
+                        detail: { questId: props.questId }
+                    });
+                    window.dispatchEvent(event);
+                }
+            });
+
+            // Change cursor on hover
+            map.on('mouseenter', 'quest-mystery-radius', () => {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+            map.on('mouseleave', 'quest-mystery-radius', () => {
+                map.getCanvas().style.cursor = '';
             });
         });
 

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Quest, UserLocation, QuestProgress } from '@couch-heroes/shared';
-import { haversineDistance, isWithinRadius, generateId } from '@couch-heroes/shared';
+import { haversineDistance, isWithinRadius } from '@couch-heroes/shared';
 
 interface QuestState {
     // Location tracking
@@ -22,6 +22,7 @@ interface QuestState {
     completeQuest: (questId: string) => void;
     claimReward: (questId: string) => Promise<void>;
     toggleGPSMode: () => void;
+    clearQuests: () => void;
 
     // Selectors
     getNearbyQuests: () => Quest[];
@@ -193,13 +194,8 @@ export const useQuestStore = create<QuestState>((set, get) => ({
         console.log(`[Optimistic] Claiming rewards for quest ${questId}...`);
 
         try {
-            // TODO: Call backend API to claim rewards
-            // const response = await fetch(`/api/quests/${questId}/claim`, { method: 'POST' });
-            // if (!response.ok) throw new Error('Failed to claim rewards');
-
             // Simulate API call
             await new Promise((resolve) => setTimeout(resolve, 500));
-
             console.log(`[Success] Rewards claimed for quest ${questId}`);
         } catch (error) {
             console.error('[Error] Failed to claim rewards:', error);
@@ -211,7 +207,6 @@ export const useQuestStore = create<QuestState>((set, get) => ({
                 return { questProgress: newProgressMap };
             });
 
-            // TODO: Show error toast to user
             alert('Failed to claim rewards. Please try again.');
         }
     },
@@ -221,6 +216,11 @@ export const useQuestStore = create<QuestState>((set, get) => ({
         set((state) => ({
             useMockGPS: !state.useMockGPS,
         }));
+    },
+
+    // Clear all quests (Debug)
+    clearQuests: () => {
+        set({ activeQuests: [], completedQuests: [], questProgress: new Map() });
     },
 
     // FOG OF WAR: Get quests within 2km of current location

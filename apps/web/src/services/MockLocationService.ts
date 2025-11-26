@@ -55,10 +55,7 @@ export class MockLocationService {
     /**
      * Start watching/simulating location updates
      */
-    startWatching(
-        onLocationUpdate: (location: UserLocation) => void,
-        onError?: (error: Error) => void
-    ): void {
+    startWatching(onLocationUpdate: (location: UserLocation) => void): void {
         // Update position every 100ms
         this.updateInterval = setInterval(() => {
             this.updatePosition();
