@@ -109,6 +109,33 @@ export default function MapView({ className }: MapViewProps) {
         };
         window.addEventListener('debug-spawn-landmark', handleSpawnLandmark);
 
+        // Listen for debug teleport center events
+        const handleTeleportCenter = () => {
+            const { quickPlaceEnabled, updateLocation, useMockGPS } = useQuestStore.getState();
+            if (!quickPlaceEnabled) {
+                console.log('[QuickPlace] Teleport disabled');
+                return;
+            }
+
+            const center = map.getCenter();
+            const { lng, lat } = center;
+            console.log('[QuickPlace] Teleporting to center:', lat, lng);
+
+            // If using mock GPS, update the mock service's internal location to persist
+            if (useMockGPS) {
+                mockLocationService.teleportTo(lat, lng);
+            }
+
+            // Update store for immediate UI responsiveness
+            updateLocation({
+                lat,
+                lng,
+                timestamp: Date.now(),
+                speed: 0
+            });
+        };
+        window.addEventListener('debug-teleport-center', handleTeleportCenter);
+
         // QUICK PLACE: Right-click or Double-click to teleport
         const handleQuickPlace = (e: maplibregl.MapMouseEvent) => {
             const { quickPlaceEnabled, updateLocation, useMockGPS } = useQuestStore.getState();

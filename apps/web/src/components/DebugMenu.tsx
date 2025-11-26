@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useQuestStore } from '@/store/questStore';
 import { apiService } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
-import { Bug, MapPin, RefreshCw, PlusCircle, X, Minus, Landmark } from 'lucide-react';
+import { Bug, MapPin, RefreshCw, PlusCircle, X, Minus, Landmark, Move } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 
 export default function DebugMenu({ className, embedded = false }: { className?: string; embedded?: boolean }) {
@@ -83,6 +83,11 @@ export default function DebugMenu({ className, embedded = false }: { className?:
         window.dispatchEvent(new CustomEvent('map-recenter', {
             detail: { lat: currentLocation.lat, lng: currentLocation.lng }
         }));
+    };
+
+    const handleTeleportToCenter = () => {
+        // Dispatch event for MapView to handle teleport
+        window.dispatchEvent(new CustomEvent('debug-teleport-center'));
     };
 
     const handleRespawnQuests = async () => {
@@ -189,6 +194,13 @@ export default function DebugMenu({ className, embedded = false }: { className?:
                         <p className="px-3 text-xs text-muted-foreground">
                             Right-click map to teleport
                         </p>
+                        <button
+                            onClick={handleTeleportToCenter}
+                            className="w-full mt-2 flex items-center gap-2 px-3 py-2 text-sm font-medium bg-secondary/50 hover:bg-secondary rounded-md transition-colors text-left"
+                        >
+                            <Move className="w-4 h-4 text-cyan-500" />
+                            Teleport to Center
+                        </button>
                     </div>
                 </div>
             )}
