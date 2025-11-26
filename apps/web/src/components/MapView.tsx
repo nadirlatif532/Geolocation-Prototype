@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import { useQuestStore } from '@/store/questStore';
+import { mockLocationService } from '@/services/MockLocationService';
 
 interface MapViewProps {
     className?: string;
@@ -110,7 +111,7 @@ export default function MapView({ className }: MapViewProps) {
 
         // QUICK PLACE: Right-click or Double-click to teleport
         const handleQuickPlace = (e: maplibregl.MapMouseEvent) => {
-            const { quickPlaceEnabled, updateLocation } = useQuestStore.getState();
+            const { quickPlaceEnabled, updateLocation, useMockGPS } = useQuestStore.getState();
             if (!quickPlaceEnabled) return;
 
             e.preventDefault(); // Prevent default context menu or zoom
@@ -118,6 +119,12 @@ export default function MapView({ className }: MapViewProps) {
             const { lng, lat } = e.lngLat;
             console.log('[QuickPlace] Teleporting to:', lat, lng);
 
+            // If using mock GPS, update the mock service's internal location to persist
+            if (useMockGPS) {
+                mockLocationService.teleportTo(lat, lng);
+            }
+
+            // Update store for immediate UI responsiveness
             updateLocation({
                 lat,
                 lng,

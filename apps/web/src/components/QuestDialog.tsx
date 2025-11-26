@@ -24,19 +24,10 @@ export default function QuestDialog() {
             const quest = activeQuests.find(q => q.id === questId);
 
             if (quest && currentLocation) {
-                // Check distance
-                const distance = QuestManager.getDistanceToCheckIn(quest, currentLocation);
-
-                if (distance !== null && distance <= 30) {
-                    // Within range - Open Dialog
-                    setSelectedQuest(quest);
-                    setIsOpen(true);
-                    setMessage(null);
-                } else {
-                    // Too far - Show Toast (simulated with message state for now)
-                    setMessage(`Too far! Move closer to investigate. (${Math.round(distance || 0)}m away)`);
-                    setTimeout(() => setMessage(null), 3000);
-                }
+                // Open Dialog regardless of distance
+                setSelectedQuest(quest);
+                setIsOpen(true);
+                setMessage(null);
             }
         };
 
@@ -67,6 +58,13 @@ export default function QuestDialog() {
 
     if (!isOpen || !selectedQuest) return null;
 
+    // Calculate distance for render logic
+    const distance = (selectedQuest && currentLocation)
+        ? QuestManager.getDistanceToCheckIn(selectedQuest, currentLocation)
+        : null;
+
+    const isInRange = distance !== null && distance <= 30;
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
             <div className="bg-card border border-primary/50 rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative">
@@ -91,10 +89,10 @@ export default function QuestDialog() {
                         </div>
                         <div className="space-y-2">
                             <p className="text-lg font-medium leading-relaxed text-foreground">
-                                {selectedQuest.description}
+                                {isInRange ? selectedQuest.description : '????'}
                             </p>
                             <p className="text-sm text-muted-foreground italic">
-                                &quot;This location holds secrets of the Shard...&quot;
+                                {isInRange ? "\"This location holds secrets of the Shard...\"" : "\"Move closer to investigate...\""}
                             </p>
                         </div>
                     </div>
@@ -122,9 +120,15 @@ export default function QuestDialog() {
                 <div className="p-4 bg-secondary/20 border-t border-border flex justify-end">
                     <button
                         onClick={handleClaim}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-2 rounded-lg font-bold transition-all shadow-lg shadow-primary/20 active:scale-95"
+                        disabled={!isInRange}
+                        className={`px-6 py-2 rounded-lg font-bold transition-all shadow-lg ${isInRange
+                                ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20 active:scale-95'
+                                : 'bg-muted text-muted-foreground cursor-not-allowed'
+                            }`}
                     >
-                        Investigate & Claim
+                        {isInRange
+                            ? 'Investigate & Claim'
+                            : `Not in range (${Math.round(distance || 0)}m)`}
                     </button>
                 </div>
             </div>

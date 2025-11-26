@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuestStore } from '@/store/questStore';
 import { apiService } from '@/services/api';
 import { geolocationService } from '@/services/GeolocationService';
@@ -16,8 +16,10 @@ export default function Home() {
     const useMockGPS = useQuestStore((state) => state.useMockGPS);
     const updateLocation = useQuestStore((state) => state.updateLocation);
     const addQuest = useQuestStore((state) => state.addQuest);
-
     const setGPSMode = useQuestStore((state) => state.setGPSMode);
+
+    // Mobile Tab State
+    const [activeTab, setActiveTab] = useState<'none' | 'quests' | 'controls' | 'debug'>('none');
 
     // Wake Lock: Prevent screen from sleeping during quest tracking
     useWakeLock();
@@ -124,29 +126,66 @@ export default function Home() {
     }, [useMockGPS, updateLocation, addQuest, setGPSMode]);
 
     return (
-        <main className="relative w-screen h-screen overflow-hidden">
-            {/* LAYER 1: Map (Bottom) */}
-            <MapView className="z-0" />
+        <main className="relative w-screen h-screen overflow-hidden flex">
+            {/* Mobile Sidebar Navigation */}
+            <div className="md:hidden flex flex-col gap-2 p-2 bg-card border-r border-border z-50 w-16 h-full shrink-0">
+                <button
+                    onClick={() => setActiveTab(activeTab === 'quests' ? 'none' : 'quests')}
+                    className={`p-3 rounded-lg flex flex-col items-center justify-center gap-1 transition-colors ${activeTab === 'quests' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}
+                >
+                    <span className="text-xs font-bold">Quests</span>
+                </button>
+                <button
+                    onClick={() => setActiveTab(activeTab === 'controls' ? 'none' : 'controls')}
+                    className={`p-3 rounded-lg flex flex-col items-center justify-center gap-1 transition-colors ${activeTab === 'controls' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}
+                >
+                    <span className="text-xs font-bold">Controls</span>
+                </button>
+                <button
+                    onClick={() => setActiveTab(activeTab === 'debug' ? 'none' : 'debug')}
+                    className={`p-3 rounded-lg flex flex-col items-center justify-center gap-1 transition-colors ${activeTab === 'debug' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}
+                >
+                    <span className="text-xs font-bold">Debug</span>
+                </button>
+            </div>
 
-            {/* LAYER 2: Game Canvas (Middle - Transparent) */}
-            {/* TODO: Add canvas for particles, effects, animations */}
+            <div className="relative flex-1 h-full overflow-hidden">
+                {/* LAYER 1: Map (Bottom) */}
+                <MapView className="z-0" />
 
-            {/* LAYER 3: UI Overlay (Top) */}
-            <QuestPanel />
-            <ControlPanel />
-            <QuestDialog />
-            <DebugMenu />
+                {/* LAYER 2: Game Canvas (Middle - Transparent) */}
+                {/* TODO: Add canvas for particles, effects, animations */}
 
-            {/* Debug Info */}
-            <div className="absolute bottom-6 left-6 z-10 bg-card/95 backdrop-blur-sm border border-primary/30 rounded-lg px-4 py-2.5 shadow-xl">
-                <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                    <span className="text-sm font-medium text-primary">
-                        {useMockGPS ? '🎮 Mock GPS Active' : '📍 Real GPS Active'}
-                    </span>
+                {/* LAYER 3: UI Overlay (Top) */}
+
+                {/* Quest Panel: Visible if activeTab is 'quests' OR on desktop */}
+                <div className={`${activeTab === 'quests' ? 'block absolute inset-0 z-20 bg-background/80 backdrop-blur-sm p-4' : 'hidden'} md:block md:static md:bg-transparent md:p-0`}>
+                    <QuestPanel className="w-full h-full md:w-auto md:h-auto" />
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                    {useMockGPS ? 'Use WASD or Arrow keys' : 'Using device location'}
+
+                {/* Control Panel: Visible if activeTab is 'controls' OR on desktop */}
+                <div className={`${activeTab === 'controls' ? 'block absolute inset-0 z-20 bg-background/80 backdrop-blur-sm p-4' : 'hidden'} md:block md:static md:bg-transparent md:p-0`}>
+                    <ControlPanel className="w-full md:w-auto" />
+                </div>
+
+                <QuestDialog />
+
+                {/* Debug Menu: Visible if activeTab is 'debug' OR on desktop (it has its own toggle) */}
+                <div className={`${activeTab === 'debug' ? 'block absolute inset-0 z-20 pointer-events-none' : 'hidden'} md:block md:static`}>
+                    <DebugMenu />
+                </div>
+
+                {/* Debug Info */}
+                <div className="absolute bottom-6 left-6 z-10 bg-card/95 backdrop-blur-sm border border-primary/30 rounded-lg px-4 py-2.5 shadow-xl hidden md:block">
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                        <span className="text-sm font-medium text-primary">
+                            {useMockGPS ? '🎮 Mock GPS Active' : '📍 Real GPS Active'}
+                        </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                        {useMockGPS ? 'Use WASD or Arrow keys' : 'Using device location'}
+                    </div>
                 </div>
             </div>
         </main>

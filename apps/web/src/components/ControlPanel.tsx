@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { apiService } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 
-export default function ControlPanel() {
+export default function ControlPanel({ className }: { className?: string }) {
     const useMockGPS = useQuestStore((state) => state.useMockGPS);
     const toggleGPSMode = useQuestStore((state) => state.toggleGPSMode);
     const currentLocation = useQuestStore((state) => state.currentLocation);
@@ -43,7 +43,7 @@ export default function ControlPanel() {
     };
 
     return (
-        <div className="absolute top-0 left-0 w-full md:top-6 md:left-6 md:w-80 z-10 pointer-events-none">
+        <div className={`absolute top-0 left-0 w-full md:top-6 md:left-6 md:w-80 z-10 pointer-events-none ${className || ''}`}>
             <div className="bg-card border-b md:border border-border md:rounded-lg overflow-hidden shadow-2xl pointer-events-auto">
                 {/* Header */}
                 <div className="bg-gradient-to-r from-primary/20 to-transparent px-4 py-3 border-b border-border">
