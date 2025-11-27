@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import { useQuestStore } from '@/store/questStore';
 import { mockLocationService } from '@/services/MockLocationService';
@@ -50,6 +50,94 @@ export default function MapView({ className }: MapViewProps) {
     useEffect(() => {
         updateQuestMarkers();
     }, [activeQuests]);
+
+    // Custom map style function (cyber theme)
+    const customizeMapStyle = useCallback(() => {
+        const map = mapRef.current;
+        if (!map) return;
+
+        const { mapTheme } = useQuestStore.getState();
+
+        // If default theme, we don't apply custom paints
+        if (mapTheme === 'default') return;
+
+        const style = map.getStyle();
+        if (!style || !style.layers) return;
+
+        const uiGold = '#D4AF37'; // Metallic Gold
+        const lightPurple = '#d8bfd8'; // Thistle
+        const darkPurpleBase = '#150a1a'; // Dark Purple Base
+        const waterColor = '#2a1633'; // Deep Purple Water
+
+        // 1. Force Background
+        let hasBackground = false;
+        style.layers.forEach((layer) => {
+            if (layer.type === 'background') {
+                map.setPaintProperty(layer.id, 'background-color', darkPurpleBase);
+                hasBackground = true;
+            }
+        });
+
+        if (!hasBackground) {
+            // Check if we already added it
+            if (!map.getLayer('custom-background')) {
+                map.addLayer({
+                    id: 'custom-background',
+                    type: 'background',
+                    paint: {
+                        'background-color': darkPurpleBase
+                    }
+                }, style.layers[0].id);
+            }
+        }
+
+        style.layers.forEach((layer) => {
+            // 2. Water
+            if (layer.id.includes('water') || layer.id.includes('ocean')) {
+                if (layer.type === 'fill') {
+                    map.setPaintProperty(layer.id, 'fill-color', waterColor);
+                }
+            }
+
+            // 3. Land / Earth
+            if (layer.id.includes('land') || layer.id.includes('earth') || layer.id.includes('ground')) {
+                if (layer.type === 'fill') {
+                    map.setPaintProperty(layer.id, 'fill-color', darkPurpleBase);
+                    map.setPaintProperty(layer.id, 'fill-opacity', 1);
+                }
+            }
+
+            // 4. Roads
+            if (layer.id.includes('road') || layer.id.includes('transportation') || layer.id.includes('street') || layer.id.includes('highway') || layer.id.includes('path')) {
+                if (layer.type === 'line') {
+                    map.setPaintProperty(layer.id, 'line-color', uiGold);
+                    map.setPaintProperty(layer.id, 'line-opacity', 0.5);
+                }
+            }
+
+            // 5. Buildings & Landuse
+            if (layer.id.includes('building') || layer.id.includes('landuse') || layer.id.includes('landcover') || layer.id.includes('park') || layer.id.includes('grass')) {
+                if (layer.type === 'fill') {
+                    map.setPaintProperty(layer.id, 'fill-color', lightPurple);
+                    map.setPaintProperty(layer.id, 'fill-opacity', 0.12);
+                }
+                if (layer.type === 'fill-extrusion') {
+                    map.setPaintProperty(layer.id, 'fill-extrusion-color', lightPurple);
+                    map.setPaintProperty(layer.id, 'fill-extrusion-opacity', 0.12);
+                }
+            }
+
+            // 6. Text labels
+            if (layer.type === 'symbol') {
+                if (layer.layout && layer.layout['text-field']) {
+                    map.setPaintProperty(layer.id, 'text-color', '#e0e0e0');
+                    map.setPaintProperty(layer.id, 'text-halo-color', '#000000');
+                    map.setPaintProperty(layer.id, 'text-halo-width', 1);
+                }
+            }
+        });
+        console.log('[MapView] Custom map style applied');
+    }, []);
 
     // Initialize map with REF GUARD to prevent React 18 Strict Mode double-mounting
     useEffect(() => {
@@ -290,6 +378,14 @@ export default function MapView({ className }: MapViewProps) {
                     type: 'FeatureCollection',
                     features: [],
                 },
+            });
+
+            // Apply initial custom style if in cyber mode
+            customizeMapStyle();
+
+            // Re-apply if style reloads (for theme switching)
+            map.on('styledata', () => {
+                customizeMapStyle();
             });
 
             // Add Range Circle Layer for MOVEMENT quests (faint purple)
@@ -570,28 +666,17 @@ export default function MapView({ className }: MapViewProps) {
         );
 
         // Add geolocate control (for real GPS)
+        map.addControl(
+            new maplibregl.GeolocateControl({
+                positionOptions: {
+                    enableHighAccuracy: true,
+                },
+                trackUserLocation: true,
+            }),
+            'bottom-right'
+        );
+
     }, [activeQuests]);
-
-    // Also trigger update when map style finishes loading (fixes race condition)
-    useEffect(() => {
-        const map = mapRef.current;
-        if (!map) return;
-
-        const onStyleLoad = () => {
-            console.log('[MapView] Style loaded, updating markers...');
-            updateQuestMarkers();
-        };
-
-        if (map.isStyleLoaded()) {
-            updateQuestMarkers();
-        } else {
-            map.on('styledata', onStyleLoad);
-        }
-
-        return () => {
-            map.off('styledata', onStyleLoad);
-        };
-    }, []);
 
     // Listen for quest focus events from QuestPanel
     useEffect(() => {
@@ -613,6 +698,24 @@ export default function MapView({ className }: MapViewProps) {
         window.addEventListener('quest-focus', handleQuestFocus);
         return () => window.removeEventListener('quest-focus', handleQuestFocus);
     }, []);
+
+    // Listen for Map Theme changes
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map) return;
+
+        const { mapTheme } = useQuestStore.getState();
+        console.log('[MapView] Theme changed to:', mapTheme);
+
+        if (mapTheme === 'default') {
+            // Reload the base style to clear custom paints
+            map.setStyle('https://tiles.openfreemap.org/styles/liberty');
+        } else if (mapTheme === 'cyber') {
+            // Apply custom paints directly (no need to reload)
+            customizeMapStyle();
+        }
+
+    }, [useQuestStore((state) => state.mapTheme), customizeMapStyle]);
 
     // Update player marker when location changes (HTML marker OK for single element)
     useEffect(() => {
@@ -663,9 +766,8 @@ export default function MapView({ className }: MapViewProps) {
             });
         } else {
             playerMarker.current.setLngLat([currentLocation.lng, currentLocation.lat]);
-            map.panTo([currentLocation.lng, currentLocation.lat], {
-                duration: 300,
-            });
+            // REMOVED: map.panTo(...) to prevent fighting with user panning
+            // The map should only center on 'Locate Me' or initial load
         }
 
         // Update rotation based on heading - rotate inner container only

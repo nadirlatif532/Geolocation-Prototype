@@ -66,7 +66,7 @@ export class QuestSpawner {
                         },
                         {
                             type: 'EXP',
-                            value: 50
+                            value: 50 // Already multiple of 10
                         }
                     ]
                 };

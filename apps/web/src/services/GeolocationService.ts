@@ -4,25 +4,40 @@ import { UserLocation } from '@couch-heroes/shared';
  * Real GPS/Geolocation Service using browser API
  */
 export class GeolocationService {
-    private watchId: number | null = null;
-    private lastLocation: UserLocation | null = null;
+    /**
+     * Parse Geolocation Error to user-friendly string
+     */
+    private getErrorMessage(error: GeolocationPositionError | Error): string {
+        if (error instanceof Error) return error.message;
+
+        switch (error.code) {
+            case error.PERMISSION_DENIED:
+                return 'Location permission denied. Please enable it in your browser settings.';
+            case error.POSITION_UNAVAILABLE:
+                return 'Location information is unavailable. Check your GPS signal.';
+            case error.TIMEOUT:
+                return 'Location request timed out. Please try again.';
+            default:
+                return 'An unknown error occurred.';
+        }
+    }
 
     /**
      * Start watching user's location
      */
     startWatching(
         onLocationUpdate: (location: UserLocation) => void,
-        onError?: (error: GeolocationPositionError | Error) => void
+        onError?: (error: string) => void
     ): void {
         if (!navigator.geolocation) {
             console.error('Geolocation not supported');
-            onError?.(new Error('Geolocation not supported'));
+            onError?.('Geolocation is not supported by your browser.');
             return;
         }
 
         const options: PositionOptions = {
             enableHighAccuracy: true,
-            timeout: 10000,
+            timeout: 20000, // Increased timeout for better initial lock
             maximumAge: 0,
         };
 
@@ -41,7 +56,7 @@ export class GeolocationService {
             },
             (error) => {
                 console.error('Geolocation error:', error);
-                onError?.(error);
+                onError?.(this.getErrorMessage(error));
             },
             options
         );
@@ -79,11 +94,11 @@ export class GeolocationService {
                     resolve(location);
                 },
                 (error) => {
-                    reject(error);
+                    reject(new Error(this.getErrorMessage(error)));
                 },
                 {
                     enableHighAccuracy: true,
-                    timeout: 10000,
+                    timeout: 15000,
                     maximumAge: 0,
                 }
             );

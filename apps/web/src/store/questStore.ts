@@ -17,6 +17,7 @@ interface QuestState {
     // Service mode
     useMockGPS: boolean;
     quickPlaceEnabled: boolean;
+    mapTheme: 'default' | 'cyber';
 
     // Actions
     updateLocation: (location: UserLocation) => void;
@@ -27,6 +28,7 @@ interface QuestState {
     toggleGPSMode: () => void;
     setGPSMode: (useMock: boolean) => void;
     toggleQuickPlace: () => void;
+    toggleMapTheme: () => void;
     clearQuests: () => void;
     consumeCompletedQuest: () => void;
 
@@ -61,6 +63,7 @@ export const useQuestStore = create<QuestState>()(
             lastCompletedQuestId: null,
             useMockGPS: false, // Default to Real GPS
             quickPlaceEnabled: false,
+            mapTheme: 'cyber', // Default to Cyber
             localLandmarkRefreshTime: 0,
             recentQuestHistory: [],
 
@@ -285,6 +288,13 @@ export const useQuestStore = create<QuestState>()(
                 }));
             },
 
+            // Toggle Map Theme
+            toggleMapTheme: () => {
+                set((state) => ({
+                    mapTheme: state.mapTheme === 'cyber' ? 'default' : 'cyber',
+                }));
+            },
+
             // Clear all quests (Debug)
             clearQuests: () => {
                 set({ activeQuests: [], completedQuests: [], questProgress: new Map(), lastCompletedQuestId: null });
@@ -463,8 +473,8 @@ export const useQuestStore = create<QuestState>()(
                                 targetCoordinates: { lat: targetLat, lng: targetLng },
                                 radiusMeters: 40,
                                 rewards: [
-                                    { type: 'EXP', value: 75 },
-                                    { type: 'CURRENCY', value: 15 }
+                                    { type: 'EXP', value: 80 }, // Rounded to nearest 10
+                                    { type: 'CURRENCY', value: 20 } // Rounded to nearest 10
                                 ]
                             };
 

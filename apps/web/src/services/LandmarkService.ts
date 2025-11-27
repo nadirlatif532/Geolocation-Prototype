@@ -152,7 +152,7 @@ export class LandmarkService {
             rewards: [
                 {
                     type: 'EXP',
-                    value: Math.floor(500 * rewardMultiplier),
+                    value: Math.ceil((500 * rewardMultiplier) / 10) * 10, // Round up to nearest 10
                 },
                 {
                     type: 'ITEM',
@@ -275,11 +275,11 @@ export class LandmarkService {
             rewards: [
                 {
                     type: 'EXP',
-                    value: Math.floor(100 * rewardMultiplier),
+                    value: Math.ceil((100 * rewardMultiplier) / 10) * 10, // Round up to nearest 10
                 },
                 {
                     type: 'CURRENCY',
-                    value: Math.floor(25 * rewardMultiplier),
+                    value: Math.ceil((25 * rewardMultiplier) / 10) * 10, // Round up to nearest 10
                 }
             ]
         };

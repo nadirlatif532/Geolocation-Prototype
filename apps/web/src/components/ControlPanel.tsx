@@ -3,7 +3,7 @@
 import { useQuestStore } from '@/store/questStore';
 import { mockLocationService } from '@/services/MockLocationService';
 import { Switch } from '@/components/ui/switch';
-import { Navigation, Zap, Radar, Loader2, Save, Upload, Download, Trash2 } from 'lucide-react';
+import { Navigation, Zap, Radar, Loader2, Save, Upload, Download, Trash2, Locate } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { apiService } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
@@ -16,6 +16,8 @@ export default function ControlPanel({ className }: { className?: string }) {
     const exportSave = useQuestStore((state) => state.exportSave);
     const importSave = useQuestStore((state) => state.importSave);
     const resetData = useQuestStore((state) => state.resetData);
+    const mapTheme = useQuestStore((state) => state.mapTheme);
+    const toggleMapTheme = useQuestStore((state) => state.toggleMapTheme);
     const userId = useAuthStore((state) => state.userId);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -137,6 +139,41 @@ export default function ControlPanel({ className }: { className?: string }) {
                                 ? 'Test mode enabled. Use keyboard to simulate movement.'
                                 : 'Real GPS active. Using device location data.'}
                         </p>
+
+                        {/* Locate Me Button (Real GPS Only) */}
+                        {!useMockGPS && (
+                            <div className="pt-2 mt-2 border-t border-border/50">
+                                <button
+                                    onClick={() => {
+                                        // Trigger map recenter via custom event
+                                        if (currentLocation) {
+                                            window.dispatchEvent(new CustomEvent('map-recenter', {
+                                                detail: { lat: currentLocation.lat, lng: currentLocation.lng }
+                                            }));
+                                        } else {
+                                            // If no location, try to force an update (re-trigger permissions check essentially)
+                                            // For now, just show alert if no location
+                                            alert('Waiting for GPS signal...');
+                                        }
+                                    }}
+                                    className="w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border/50 rounded-lg py-2 px-3 text-xs font-medium transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Locate className="w-3 h-3" />
+                                    Locate Me
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Map Theme Toggle */}
+                    <div className="space-y-2 pt-2 border-t border-border/50">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-foreground">Microverse Map Style</span>
+                            <Switch
+                                checked={mapTheme === 'cyber'}
+                                onCheckedChange={toggleMapTheme}
+                            />
+                        </div>
                     </div>
 
                     {/* Data Management */}
@@ -181,24 +218,7 @@ export default function ControlPanel({ className }: { className?: string }) {
                         </button>
                     </div>
 
-                    {/* Scan Button */}
-                    <button
-                        onClick={handleScan}
-                        disabled={isScanning || !currentLocation}
-                        className="w-full bg-primary/10 hover:bg-primary/20 text-primary border border-primary/50 rounded-lg py-2 px-4 font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isScanning ? (
-                            <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                SCANNING...
-                            </>
-                        ) : (
-                            <>
-                                <Radar className="w-4 h-4" />
-                                SCAN AREA
-                            </>
-                        )}
-                    </button>
+
 
                     {/* Speed Controls (Mock GPS only) */}
                     {useMockGPS && (
