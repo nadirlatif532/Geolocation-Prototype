@@ -27,14 +27,30 @@ export default function Home() {
     // Wake Lock: Prevent screen from sleeping during quest tracking
     useWakeLock();
 
-    // Helper to initialize sample quests (Deferred until location is found)
-    const initializeQuests = (lat: number, lng: number) => {
+    // Helper to initialize quests (Deferred until location is found)
+    const initializeQuests = async (lat: number, lng: number) => {
         // Only add quests if none exist
         if (useQuestStore.getState().activeQuests.length > 0) return;
 
-        console.log('[Home] Initializing sample quests at:', lat, lng);
+        console.log('[Home] Initializing quests at:', lat, lng);
 
-        // Sample movement quest: Walk 1000m
+        // Generate milestone quest (1 quest) - uses deduplication logic in store
+        await useQuestStore.getState().generateMilestoneQuests();
+
+        // Generate local landmark quests (2 quests) - uses deduplication logic in store
+        await useQuestStore.getState().generateLocalLandmarkQuests();
+
+        // Generate mystery quests (5 quests)
+        try {
+            const result = await apiService.scanQuests('local-user', lat, lng);
+            if (result.quests && Array.isArray(result.quests)) {
+                result.quests.forEach((quest) => addQuest(quest));
+            }
+        } catch (error) {
+            console.error('[Home] Failed to generate mystery quests:', error);
+        }
+
+        // Add movement quests
         addQuest({
             id: 'quest-movement-1',
             type: 'MOVEMENT',
@@ -48,25 +64,6 @@ export default function Home() {
             ],
         });
 
-        // Sample check-in quest: Nearby Landmark (Dynamic based on location)
-        // For demo, we'll just put it 100m away
-        addQuest({
-            id: 'quest-checkin-1',
-            type: 'CHECKIN',
-            title: 'Visit Local Landmark',
-            description: 'Check in at the nearby point of interest',
-            targetCoordinates: {
-                lat: lat + 0.001, // Roughly 100m North
-                lng: lng + 0.001  // Roughly 100m East
-            },
-            radiusMeters: 100,
-            rewards: [
-                { type: 'EXP', value: 250 },
-                { type: 'ITEM', value: 'Ancient Relic', itemId: 'relic-001' },
-            ],
-        });
-
-        // Another movement quest
         addQuest({
             id: 'quest-movement-2',
             type: 'MOVEMENT',
@@ -87,6 +84,20 @@ export default function Home() {
         const service = useMockGPS ? mockLocationService : geolocationService;
 
         console.log(`[Home] Starting location service. Mock Mode: ${useMockGPS}`);
+
+        // If switching to mock GPS, reset to Athens and recenter map
+        if (useMockGPS) {
+            mockLocationService.resetToAthens();
+            const athensLocation = mockLocationService.getLastLocation();
+            updateLocation(athensLocation);
+
+            // Recenter map to Athens after a short delay to ensure map is ready
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('map-recenter', {
+                    detail: { lat: athensLocation.lat, lng: athensLocation.lng }
+                }));
+            }, 100);
+        }
 
         // Check if GPS permission is already granted and get immediate position
         if (!useMockGPS && 'permissions' in navigator) {
@@ -111,16 +122,8 @@ export default function Home() {
                                 const state = useQuestStore.getState();
                                 if (state.activeQuests.length === 0) {
                                     console.log('[Home] Spawning quests immediately with granted permission');
-                                    initializeQuests(location.lat, location.lng);
-
-                                    // Scan for server-side quests
-                                    apiService.scanQuests(userId, location.lat, location.lng)
-                                        .then((result) => {
-                                            if (result.quests && Array.isArray(result.quests)) {
-                                                result.quests.forEach((quest) => addQuest(quest));
-                                            }
-                                        })
-                                        .catch(err => console.error('[Home] Auto-scan failed:', err));
+                                    initializeQuests(location.lat, location.lng)
+                                        .catch(err => console.error('[Home] Quest initialization failed:', err));
                                 }
                             },
                             (error) => {
@@ -140,7 +143,8 @@ export default function Home() {
             const state = useQuestStore.getState();
             if (state.activeQuests.length === 0) {
                 console.log('[Home] Spawning quests immediately in mock mode');
-                initializeQuests(mockLocation.lat, mockLocation.lng);
+                initializeQuests(mockLocation.lat, mockLocation.lng)
+                    .catch(err => console.error('[Home] Quest initialization failed:', err));
             }
         }
 
@@ -159,14 +163,8 @@ export default function Home() {
                 // We check if activeQuests is empty to ensure we only do this once
                 const state = useQuestStore.getState();
                 if (state.activeQuests.length === 0) {
-                    initializeQuests(location.lat, location.lng);
-
-                    // Also try to scan for server-side quests
-                    apiService.scanQuests(userId, location.lat, location.lng).then((result) => {
-                        if (result.quests && Array.isArray(result.quests)) {
-                            result.quests.forEach((quest) => addQuest(quest));
-                        }
-                    }).catch(err => console.error('[Home] Auto-scan failed:', err));
+                    initializeQuests(location.lat, location.lng)
+                        .catch(err => console.error('[Home] Quest initialization failed:', err));
                 }
             },
             (error) => {
@@ -193,6 +191,15 @@ export default function Home() {
         <main className="relative w-screen h-screen overflow-hidden">
             {/* Map Background */}
             <MapView className="absolute inset-0 z-0" />
+
+            {/* Couch Heroes Logo (Mobile - Bottom Right) */}
+            <div className="absolute bottom-6 right-6 z-10 md:hidden">
+                <img
+                    src="/couch-heroes-logo.png"
+                    alt="Couch Heroes"
+                    className="h-12 w-auto opacity-90"
+                />
+            </div>
 
             {/* Floating Drawer System (Mobile Only) */}
             <div className="md:hidden">
@@ -297,16 +304,14 @@ export default function Home() {
             <div className="hidden md:block absolute inset-0 pointer-events-none">
                 <QuestPanel className="absolute top-6 right-20 z-20 pointer-events-auto" />
                 <ControlPanel className="absolute top-6 left-6 z-20 pointer-events-auto" />
-                <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
-                    <DebugMenu />
-                </div>
+                <DebugMenu className="pointer-events-auto" />
             </div>
 
             {/* Quest Dialog (Mobile & Desktop) */}
             <QuestDialog />
 
             {/* Debug Info (Desktop Only) */}
-            <div className="absolute bottom-6 left-6 z-10 bg-card/95 backdrop-blur-sm border border-primary/30 rounded-lg px-4 py-2.5 shadow-xl hidden md:block">
+            <div className="absolute bottom-20 left-6 z-10 bg-card/95 backdrop-blur-sm border border-primary/30 rounded-lg px-4 py-2.5 shadow-xl hidden md:block">
                 <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                     <span className="text-sm font-medium text-primary">
@@ -316,6 +321,15 @@ export default function Home() {
                 <div className="text-xs text-muted-foreground mt-1">
                     {useMockGPS ? 'Use WASD or Arrow keys' : 'Using device location'}
                 </div>
+            </div>
+
+            {/* Couch Heroes Logo (Bottom Right) */}
+            <div className="absolute bottom-6 right-6 z-10 hidden md:block">
+                <img
+                    src="/couch-heroes-logo.png"
+                    alt="Couch Heroes"
+                    className="h-16 w-auto opacity-90 hover:opacity-100 transition-opacity"
+                />
             </div>
 
             {/* Tutorial Button (Top Left) */}

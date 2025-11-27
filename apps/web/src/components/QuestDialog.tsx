@@ -122,8 +122,8 @@ export default function QuestDialog() {
                         onClick={handleClaim}
                         disabled={!isInRange}
                         className={`px-6 py-2 rounded-lg font-bold transition-all shadow-lg ${isInRange
-                                ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20 active:scale-95'
-                                : 'bg-muted text-muted-foreground cursor-not-allowed'
+                            ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20 active:scale-95'
+                            : 'bg-muted text-muted-foreground cursor-not-allowed'
                             }`}
                     >
                         {isInRange

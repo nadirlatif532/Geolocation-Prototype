@@ -189,6 +189,13 @@ export class MockLocationService {
             heading: this.currentLocation.heading, // Preserve heading when teleporting
         };
     }
+
+    /**
+     * Reset to Athens (default location)
+     */
+    resetToAthens(): void {
+        this.teleportTo(37.9838, 23.7275);
+    }
 }
 
 export const mockLocationService = new MockLocationService();

@@ -143,7 +143,7 @@ export default function DebugMenu({ className, embedded = false }: { className?:
             <button
                 onClick={() => { setIsOpen(true); setIsMinimized(false); }}
                 className={cn(
-                    "fixed bottom-6 right-6 z-50 bg-destructive text-destructive-foreground p-3 rounded-full shadow-lg hover:bg-destructive/90 transition-all",
+                    "fixed bottom-6 left-6 z-50 bg-destructive text-destructive-foreground p-3 rounded-full shadow-lg hover:bg-destructive/90 transition-all",
                     className
                 )}
                 title="Debug Menu"
@@ -156,7 +156,7 @@ export default function DebugMenu({ className, embedded = false }: { className?:
     const containerClasses = cn(
         embedded
             ? "w-full bg-card"
-            : `fixed bottom-6 right-6 z-50 bg-card border border-destructive/50 rounded-lg shadow-2xl overflow-hidden transition-all duration-300 ${isMinimized ? 'w-64 h-12' : 'w-64'}`,
+            : `fixed bottom-6 left-6 z-50 bg-card border border-destructive/50 rounded-lg shadow-2xl overflow-hidden transition-all duration-300 ${isMinimized ? 'w-64 h-12' : 'w-64'}`,
         className
     );
 
