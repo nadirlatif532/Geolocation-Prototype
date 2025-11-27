@@ -166,21 +166,6 @@ export const useQuestStore = create<QuestState>()(
                             return { questProgress: newProgressMap };
                         });
                     }
-                } else if (quest.type === 'CHECKIN') {
-                    // Check proximity to target location
-                    if (quest.targetCoordinates) {
-                        const isNearby = isWithinRadius(
-                            currentLocation.lat,
-                            currentLocation.lng,
-                            quest.targetCoordinates.lat,
-                            quest.targetCoordinates.lng,
-                            quest.radiusMeters || 50
-                        );
-
-                        if (isNearby) {
-                            get().completeQuest(questId);
-                        }
-                    }
                 }
             },
 

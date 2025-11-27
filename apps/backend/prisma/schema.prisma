@@ -24,7 +24,7 @@ model User {
 
 model Quest {
   id          String   @id @default(cuid())
-  type        String   // MOVEMENT, CHECKIN, DAILY
+  type        String   // MOVEMENT, DAILY, WEEKLY, MYSTERY, MILESTONE, LOCAL
   title       String
   description String
   
