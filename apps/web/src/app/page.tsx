@@ -195,7 +195,7 @@ export default function Home() {
             {/* Couch Heroes Logo (Mobile - Bottom Right) */}
             <div className="absolute bottom-6 right-6 z-10 md:hidden">
                 <img
-                    src="/couch-heroes-logo.png"
+                    src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/couch-heroes-logo.png`}
                     alt="Couch Heroes"
                     className="h-12 w-auto opacity-90"
                 />
@@ -326,7 +326,7 @@ export default function Home() {
             {/* Couch Heroes Logo (Bottom Right) */}
             <div className="absolute bottom-6 right-6 z-10 hidden md:block">
                 <img
-                    src="/couch-heroes-logo.png"
+                    src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/couch-heroes-logo.png`}
                     alt="Couch Heroes"
                     className="h-16 w-auto opacity-90 hover:opacity-100 transition-opacity"
                 />
