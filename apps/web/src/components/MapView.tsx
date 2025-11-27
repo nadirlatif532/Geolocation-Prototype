@@ -417,7 +417,7 @@ export default function MapView({ className }: MapViewProps) {
             // Apply initial custom style if in cyber mode
             customizeMapStyle();
 
-            // Add Range Circle Layer for MOVEMENT quests (faint purple)
+            // Add Range Circle Layer for MOVEMENT quests (faint green)
             if (!map.getLayer('quest-movement-range')) {
                 map.addLayer({
                     id: 'quest-movement-range',
@@ -430,16 +430,16 @@ export default function MapView({ className }: MapViewProps) {
                             8, 0.16,
                             22, 2560
                         ], // Visual range scales with zoom (40m ~= 20px at z15)
-                        'circle-color': '#9d00ff',
+                        'circle-color': '#10b981',
                         'circle-opacity': 0.15,
                         'circle-stroke-width': 1,
-                        'circle-stroke-color': '#9d00ff',
+                        'circle-stroke-color': '#10b981',
                         'circle-stroke-opacity': 0.3,
                     },
                 });
             }
 
-            // Add Circle Layer for MOVEMENT quests (purple)
+            // Add Circle Layer for MOVEMENT quests (green)
             if (!map.getLayer('quest-movement')) {
                 map.addLayer({
                     id: 'quest-movement',
@@ -448,7 +448,7 @@ export default function MapView({ className }: MapViewProps) {
                     filter: ['==', ['get', 'questType'], 'MOVEMENT'],
                     paint: {
                         'circle-radius': 12, // Larger touch target
-                        'circle-color': '#9d00ff',
+                        'circle-color': '#10b981',
                         'circle-stroke-width': 3,
                         'circle-stroke-color': '#ffffff',
                     },

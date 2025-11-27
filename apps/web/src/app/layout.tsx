@@ -24,6 +24,9 @@ export const metadata: Metadata = {
     title: 'Couch Heroes - Geolocation MMO',
     description: 'Hybrid web/mobile geolocation companion app for MMO adventures',
     manifest: '/manifest.json',
+    icons: {
+        icon: '/favicon.ico',
+    },
 };
 
 export default function RootLayout({

@@ -120,11 +120,11 @@ export default function TutorialPanel({ onClose }: TutorialPanelProps) {
 
                             <div className="grid gap-3">
                                 <div className="flex gap-3 p-3 rounded-lg bg-secondary/20 border border-border">
-                                    <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center shrink-0">
-                                        <MapPin className="w-4 h-4 text-purple-400" />
+                                    <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
+                                        <MapPin className="w-4 h-4 text-green-400" />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-sm">Movement Quests</h4>
+                                        <h4 className="font-bold text-sm">Movement Quests (Green)</h4>
                                         <p className="text-xs text-muted-foreground">
                                             Reach a target distance (e.g., "Walk 1km"). Great for jogging or hiking.
                                         </p>
@@ -132,25 +132,37 @@ export default function TutorialPanel({ onClose }: TutorialPanelProps) {
                                 </div>
 
                                 <div className="flex gap-3 p-3 rounded-lg bg-secondary/20 border border-border">
-                                    <div className="w-8 h-8 rounded-full bg-pink-500/20 flex items-center justify-center shrink-0">
-                                        <Target className="w-4 h-4 text-pink-400" />
+                                    <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center shrink-0">
+                                        <MapPin className="w-4 h-4 text-purple-400" />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-sm">Check-in Quests</h4>
+                                        <h4 className="font-bold text-sm">Mystery Quests (Purple)</h4>
                                         <p className="text-xs text-muted-foreground">
-                                            Go to a specific location on the map. You must be within range to complete it.
+                                            Random locations spawned around you. Discover hidden objectives and explore new areas.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 p-3 rounded-lg bg-secondary/20 border border-border">
+                                    <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center shrink-0">
+                                        <MapPin className="w-4 h-4 text-cyan-400" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-sm">Local Quests (Cyan)</h4>
+                                        <p className="text-xs text-muted-foreground">
+                                            Visit nearby points of interest like parks, cafes, and shops. Auto-respawns when completed.
                                         </p>
                                     </div>
                                 </div>
 
                                 <div className="flex gap-3 p-3 rounded-lg bg-secondary/20 border border-border">
                                     <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center shrink-0">
-                                        <span className="font-bold text-yellow-500">?</span>
+                                        <span className="font-bold text-yellow-500">★</span>
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-sm">Mystery Quests</h4>
+                                        <h4 className="font-bold text-sm">Milestone Quests (Gold)</h4>
                                         <p className="text-xs text-muted-foreground">
-                                            Hidden objectives or rare finds. Explore the map to reveal them!
+                                            Legendary city landmarks and monuments. Higher rewards but require more travel.
                                         </p>
                                     </div>
                                 </div>
@@ -163,9 +175,9 @@ export default function TutorialPanel({ onClose }: TutorialPanelProps) {
                             <h3 className="font-bold text-foreground">Game Controls</h3>
                             <ul className="space-y-4 text-sm text-muted-foreground">
                                 <li>
-                                    <strong className="text-foreground block mb-1">Scanning</strong>
-                                    Use the <strong>Scan Area</strong> button in the Controls panel to find new quests nearby.
-                                    Scanning has a cooldown, so use it wisely when you enter a new area.
+                                    <strong className="text-foreground block mb-1">Quest Discovery</strong>
+                                    Quests spawn automatically around your location. Movement and Milestone quests
+                                    are created when you start the app. Mystery and Local quests appear based on your area.
                                 </li>
                                 <li>
                                     <strong className="text-foreground block mb-1">Map Navigation</strong>
