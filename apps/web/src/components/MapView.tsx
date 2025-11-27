@@ -477,65 +477,7 @@ export default function MapView({ className }: MapViewProps) {
                 });
             }
 
-            // Add Range Circle Layer for CHECKIN quests (faint pink)
-            if (!map.getLayer('quest-checkin-range')) {
-                map.addLayer({
-                    id: 'quest-checkin-range',
-                    type: 'circle',
-                    source: 'quests',
-                    filter: ['==', ['get', 'questType'], 'CHECKIN'],
-                    paint: {
-                        'circle-radius': [
-                            'interpolate', ['exponential', 2], ['zoom'],
-                            8, 0.20,
-                            22, 3200
-                        ], // 50m ~= 25px at z15
-                        'circle-color': '#ff0080',
-                        'circle-opacity': 0.15,
-                        'circle-stroke-width': 1,
-                        'circle-stroke-color': '#ff0080',
-                        'circle-stroke-opacity': 0.3,
-                    },
-                });
-            }
 
-            // Add Circle Layer for CHECKIN quests (pink)
-            if (!map.getLayer('quest-checkin')) {
-                map.addLayer({
-                    id: 'quest-checkin',
-                    type: 'circle',
-                    source: 'quests',
-                    filter: ['==', ['get', 'questType'], 'CHECKIN'],
-                    paint: {
-                        'circle-radius': 12, // Larger touch target
-                        'circle-color': '#ff0080',
-                        'circle-stroke-width': 3,
-                        'circle-stroke-color': '#ffffff',
-                    },
-                });
-            }
-
-            // Add Symbol Layer for CHECKIN labels
-            if (!map.getLayer('quest-checkin-label')) {
-                map.addLayer({
-                    id: 'quest-checkin-label',
-                    type: 'symbol',
-                    source: 'quests',
-                    filter: ['==', ['get', 'questType'], 'CHECKIN'],
-                    layout: {
-                        'text-field': ['get', 'title'],
-                        'text-font': ['Noto Sans Regular'],
-                        'text-offset': [0, 2],
-                        'text-anchor': 'top',
-                        'text-size': 14,
-                    },
-                    paint: {
-                        'text-color': '#ffffff',
-                        'text-halo-color': '#000000',
-                        'text-halo-width': 2,
-                    },
-                });
-            }
 
             // Add Symbol Layer for MYSTERY quests (Using SVG Icon)
             if (!map.getLayer('quest-mystery')) {
@@ -565,10 +507,10 @@ export default function MapView({ className }: MapViewProps) {
                             8, 0.12,
                             22, 1920
                         ], // Larger Visual radius scales with zoom (30m ~= 15px at z15)
-                        'circle-color': '#FFD700',
+                        'circle-color': '#9d00ff',
                         'circle-opacity': 0.15,
                         'circle-stroke-width': 1,
-                        'circle-stroke-color': '#FFD700',
+                        'circle-stroke-color': '#9d00ff',
                         'circle-stroke-opacity': 0.5,
                     },
                 });
@@ -626,9 +568,9 @@ export default function MapView({ className }: MapViewProps) {
                     paint: {
                         'circle-radius': [
                             'interpolate', ['exponential', 2], ['zoom'],
-                            8, 0.40,
-                            22, 6400
-                        ], // 100m ~= 50px at z15
+                            8, 0.22,
+                            22, 3600
+                        ], // 100m ~= 28px at z15
                         'circle-color': '#FFD700',
                         'circle-opacity': 0.1,
                         'circle-stroke-width': 2,
@@ -672,7 +614,6 @@ export default function MapView({ className }: MapViewProps) {
             // Click handler for ALL quest layers
             const questLayers = [
                 'quest-movement', 'quest-movement-range',
-                'quest-checkin', 'quest-checkin-range',
                 'quest-mystery', 'quest-mystery-radius',
                 'quest-local-icon', 'quest-local-radius',
                 'quest-milestone-icon', 'quest-milestone-range'

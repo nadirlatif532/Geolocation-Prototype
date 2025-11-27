@@ -63,7 +63,7 @@ export default function QuestDialog() {
         ? QuestManager.getDistanceToCheckIn(selectedQuest, currentLocation)
         : null;
 
-    const isInRange = distance !== null && distance <= 30;
+    const isInRange = distance !== null && distance <= (selectedQuest.radiusMeters || 50);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">

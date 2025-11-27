@@ -4,6 +4,9 @@ import { UserLocation } from '@couch-heroes/shared';
  * Real GPS/Geolocation Service using browser API
  */
 export class GeolocationService {
+    private watchId: number | null = null;
+    private lastLocation: UserLocation | null = null;
+
     /**
      * Parse Geolocation Error to user-friendly string
      */

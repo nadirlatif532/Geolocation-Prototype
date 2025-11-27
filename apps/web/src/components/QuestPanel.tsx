@@ -211,7 +211,7 @@ export default function QuestPanel({ className }: { className?: string }) {
 
                     {/* Active Quests - Filtered to only show DAILY/WEEKLY/MOVEMENT */}
                     {nearbyQuests
-                        .filter(q => q.type === 'DAILY' || q.type === 'MOVEMENT' || q.type === 'CHECKIN')
+                        .filter(q => q.type === 'DAILY' || q.type === 'MOVEMENT')
                         .map((quest) => {
                             const progress = QuestManager.getProgressPercentage(
                                 quest,
@@ -235,11 +235,7 @@ export default function QuestPanel({ className }: { className?: string }) {
                                                 <MapPin className="w-4 h-4 text-purple-400" />
                                             </div>
                                         )}
-                                        {quest.type === 'CHECKIN' && (
-                                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-500/20 flex items-center justify-center">
-                                                <Target className="w-4 h-4 text-pink-400" />
-                                            </div>
-                                        )}
+
                                     </div>
 
                                     {/* Progress Bar */}
@@ -269,18 +265,7 @@ export default function QuestPanel({ className }: { className?: string }) {
                                             </div>
                                         )}
 
-                                        {quest.type === 'CHECKIN' && currentLocation && (
-                                            <div className="text-xs text-muted-foreground pt-1">
-                                                {QuestManager.getDistanceToCheckIn(quest, currentLocation) !== null && (
-                                                    <span>
-                                                        Distance:{' '}
-                                                        {formatDistance(
-                                                            QuestManager.getDistanceToCheckIn(quest, currentLocation)!
-                                                        )}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        )}
+
                                     </div>
 
                                     {/* Rewards */}

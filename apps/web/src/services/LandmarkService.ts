@@ -148,7 +148,7 @@ export class LandmarkService {
                 lat: element.lat,
                 lng: element.lon
             },
-            radiusMeters: 50,
+            radiusMeters: 100,
             rewards: [
                 {
                     type: 'EXP',
@@ -271,7 +271,7 @@ export class LandmarkService {
                 lat: element.lat,
                 lng: element.lon
             },
-            radiusMeters: 30,
+            radiusMeters: 50,
             rewards: [
                 {
                     type: 'EXP',
