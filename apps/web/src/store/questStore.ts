@@ -499,17 +499,6 @@ export const useQuestStore = create<QuestState>()(
                         return true;
                     }
 
-                    // Check-in quests: filter by distance
-                    if (quest.type === 'CHECKIN' && quest.targetCoordinates) {
-                        const distance = haversineDistance(
-                            currentLocation.lat,
-                            currentLocation.lng,
-                            quest.targetCoordinates.lat,
-                            quest.targetCoordinates.lng
-                        );
-                        return distance <= FOG_OF_WAR_RADIUS;
-                    }
-
                     return true; // Default: show quest
                 });
             },
