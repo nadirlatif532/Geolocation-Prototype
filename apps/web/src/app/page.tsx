@@ -64,24 +64,6 @@ export default function Home() {
             ],
         });
 
-        // Sample check-in quest: Nearby Landmark (Dynamic based on location)
-        // For demo, we'll just put it 100m away
-        addQuest({
-            id: 'quest-checkin-1',
-            type: 'CHECKIN',
-            title: 'Visit Local Landmark',
-            description: 'Check in at the nearby point of interest',
-            targetCoordinates: {
-                lat: lat + 0.001, // Roughly 100m North
-                lng: lng + 0.001  // Roughly 100m East
-            },
-            radiusMeters: 100,
-            rewards: [
-                { type: 'EXP', value: 250 },
-                { type: 'ITEM', value: 'Ancient Relic', itemId: 'relic-001' },
-            ],
-        });
-
         // Another movement quest
         addQuest({
             id: 'quest-movement-2',
@@ -140,6 +122,9 @@ export default function Home() {
 
                                     // Generate Milestone Quests
                                     useQuestStore.getState().generateMilestoneQuests();
+
+                                    // Generate Local Landmark Quests
+                                    useQuestStore.getState().generateLocalLandmarkQuests();
                                 }
                             },
                             (error) => {
@@ -174,6 +159,11 @@ export default function Home() {
                 useQuestStore.getState().generateMilestoneQuests()
                     .then(() => console.log('[Home] Milestone generation complete.'))
                     .catch(err => console.error('[Home] Milestone generation failed:', err));
+
+                console.log('[Home] Generating local landmark quests...');
+                useQuestStore.getState().generateLocalLandmarkQuests()
+                    .then(() => console.log('[Home] Local landmark generation complete.'))
+                    .catch(err => console.error('[Home] Local landmark generation failed:', err));
             }
         }
 
@@ -203,6 +193,9 @@ export default function Home() {
 
                     // Generate Milestone Quests
                     useQuestStore.getState().generateMilestoneQuests();
+
+                    // Generate Local Landmark Quests
+                    useQuestStore.getState().generateLocalLandmarkQuests();
                 }
             },
             (error) => {

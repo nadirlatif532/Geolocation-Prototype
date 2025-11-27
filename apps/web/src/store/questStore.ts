@@ -34,10 +34,13 @@ interface QuestState {
     generateMilestoneQuests: () => Promise<void>;
     milestoneRefreshCount: number;
     milestoneRefreshResetTime: number;
+    localLandmarkRefreshTime: number;
 
     // Data Management
     exportSave: () => string;
     importSave: (json: string) => boolean;
+    resetData: () => void;
+    generateLocalLandmarkQuests: () => Promise<void>;
 }
 
 export const useQuestStore = create<QuestState>()(
@@ -51,6 +54,7 @@ export const useQuestStore = create<QuestState>()(
             questProgress: new Map(),
             useMockGPS: false, // Default to Real GPS
             quickPlaceEnabled: false,
+            localLandmarkRefreshTime: 0,
 
             // Update user's location
             updateLocation: (location: UserLocation) => {
@@ -181,6 +185,15 @@ export const useQuestStore = create<QuestState>()(
 
                 // Show completion notification
                 console.log(`Quest completed: ${questId}`);
+
+                // AUTO-RESPAWN: If this was a LOCAL quest, immediately spawn a replacement
+                const completedQuest = get().completedQuests.find(q => q.id === questId);
+                if (completedQuest && completedQuest.type === 'LOCAL') {
+                    console.log('[QuestStore] Local quest completed, respawning...');
+                    setTimeout(() => {
+                        get().generateLocalLandmarkQuests();
+                    }, 500); // Small delay to avoid race conditions
+                }
             },
 
             // Optimistic reward claiming with rollback on failure
@@ -283,6 +296,81 @@ export const useQuestStore = create<QuestState>()(
                     }
                 } catch (error) {
                     console.error('[QuestStore] Failed to generate milestone quests:', error);
+                }
+            },
+
+            // Generate Local Landmark Quests
+            generateLocalLandmarkQuests: async () => {
+                const { currentLocation, activeQuests, completedQuests } = get();
+                if (!currentLocation) return;
+
+                try {
+                    const { landmarkService } = await import('@/services/LandmarkService');
+
+                    // Fetch local landmarks
+                    const localLandmarks = await landmarkService.fetchLocalLandmarks(
+                        currentLocation.lat,
+                        currentLocation.lng
+                    );
+
+                    console.log(`[QuestStore] Fetched ${localLandmarks.length} local landmark candidates`);
+
+                    if (localLandmarks.length === 0) return;
+
+                    // Filter out already active or completed local quests
+                    const activeLocalIds = new Set(activeQuests.filter(q => q.type === 'LOCAL').map(q => q.id));
+                    const completedIds = new Set(completedQuests.map(q => q.id));
+                    const availableLandmarks = localLandmarks.filter(q =>
+                        !activeLocalIds.has(q.id) && !completedIds.has(q.id)
+                    );
+
+                    // Calculate how many more LOCAL quests we need (target: 2 active)
+                    const currentLocalCount = activeQuests.filter(q => q.type === 'LOCAL').length;
+                    const questsNeeded = 2 - currentLocalCount;
+
+                    if (questsNeeded <= 0) {
+                        console.log('[QuestStore] Already have 2 LOCAL quests active');
+                        return;
+                    }
+
+                    // Select quests with minimum 500m spacing between them
+                    const selectedQuests: Quest[] = [];
+                    const minDistance = 500; // meters
+
+                    for (const candidate of availableLandmarks) {
+                        if (selectedQuests.length >= questsNeeded) break;
+
+                        // Check distance from already selected quests
+                        let validSelection = true;
+                        for (const selected of selectedQuests) {
+                            if (candidate.targetCoordinates && selected.targetCoordinates) {
+                                const { haversineDistance } = await import('@couch-heroes/shared');
+                                const distance = haversineDistance(
+                                    candidate.targetCoordinates.lat,
+                                    candidate.targetCoordinates.lng,
+                                    selected.targetCoordinates.lat,
+                                    selected.targetCoordinates.lng
+                                );
+                                if (distance < minDistance) {
+                                    validSelection = false;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (validSelection) {
+                            selectedQuests.push(candidate);
+                        }
+                    }
+
+                    // Add the selected quests
+                    selectedQuests.forEach(quest => {
+                        get().addQuest(quest);
+                        console.log('[QuestStore] Added LOCAL quest:', quest.title);
+                    });
+
+                } catch (error) {
+                    console.error('[QuestStore] Failed to generate local landmark quests:', error);
                 }
             },
 
@@ -399,6 +487,7 @@ export const useQuestStore = create<QuestState>()(
                     questProgress: Array.from(state.questProgress.entries()),
                     locationHistory: state.locationHistory,
                     useMockGPS: state.useMockGPS,
+                    localLandmarkRefreshTime: state.localLandmarkRefreshTime,
                     timestamp: Date.now()
                 };
                 return JSON.stringify(saveData, null, 2);
@@ -420,6 +509,7 @@ export const useQuestStore = create<QuestState>()(
                         questProgress: new Map(data.questProgress),
                         locationHistory: data.locationHistory || [],
                         useMockGPS: data.useMockGPS ?? false,
+                        localLandmarkRefreshTime: data.localLandmarkRefreshTime || 0,
                     });
 
                     return true;
@@ -427,7 +517,32 @@ export const useQuestStore = create<QuestState>()(
                     console.error('Failed to import save:', error);
                     return false;
                 }
-            }
+            },
+
+            // Reset All Data
+            resetData: () => {
+                // Set flag to prevent autosave
+                sessionStorage.setItem('skip-autosave', 'true');
+
+                // Clear all state
+                set({
+                    currentLocation: null,
+                    locationHistory: [],
+                    activeQuests: [],
+                    completedQuests: [],
+                    questProgress: new Map(),
+                    useMockGPS: false,
+                    quickPlaceEnabled: false,
+                    milestoneRefreshCount: 0,
+                    milestoneRefreshResetTime: 0,
+                    localLandmarkRefreshTime: 0,
+                });
+
+                // Clear localStorage
+                localStorage.removeItem('quest-storage');
+
+                console.log('[QuestStore] All data has been reset');
+            },
         }),
         {
             name: 'quest-storage',

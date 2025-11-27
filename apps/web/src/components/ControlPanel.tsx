@@ -3,7 +3,7 @@
 import { useQuestStore } from '@/store/questStore';
 import { mockLocationService } from '@/services/MockLocationService';
 import { Switch } from '@/components/ui/switch';
-import { Navigation, Zap, Radar, Loader2, Save, Upload, Download } from 'lucide-react';
+import { Navigation, Zap, Radar, Loader2, Save, Upload, Download, Trash2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { apiService } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
@@ -15,12 +15,14 @@ export default function ControlPanel({ className }: { className?: string }) {
     const addQuest = useQuestStore((state) => state.addQuest);
     const exportSave = useQuestStore((state) => state.exportSave);
     const importSave = useQuestStore((state) => state.importSave);
+    const resetData = useQuestStore((state) => state.resetData);
     const userId = useAuthStore((state) => state.userId);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [speedPreset, setSpeedPreset] = useState<'walking' | 'running' | 'cycling'>('walking');
     const [isScanning, setIsScanning] = useState(false);
+    const [showResetConfirm, setShowResetConfirm] = useState(false);
 
     const handleSpeedChange = (preset: 'walking' | 'running' | 'cycling') => {
         setSpeedPreset(preset);
@@ -86,6 +88,21 @@ export default function ControlPanel({ className }: { className?: string }) {
         }
     };
 
+    const handleResetData = () => {
+        if (!showResetConfirm) {
+            setShowResetConfirm(true);
+            return;
+        }
+
+        // Double confirmation passed, reset data
+        resetData();
+
+        // Reload the page after a short delay
+        setTimeout(() => {
+            window.location.reload();
+        }, 100);
+    };
+
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -148,6 +165,17 @@ export default function ControlPanel({ className }: { className?: string }) {
                                 className="hidden"
                             />
                         </div>
+                        <button
+                            onClick={handleResetData}
+                            onBlur={() => setTimeout(() => setShowResetConfirm(false), 200)}
+                            className={`w-full ${showResetConfirm
+                                    ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'
+                                    : 'bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/50'
+                                } rounded-lg py-2 px-3 text-xs font-medium transition-all flex items-center justify-center gap-2`}
+                        >
+                            <Trash2 className="w-3 h-3" />
+                            {showResetConfirm ? 'Click Again to Confirm Reset' : 'Reset All Data'}
+                        </button>
                     </div>
 
                     {/* Scan Button */}

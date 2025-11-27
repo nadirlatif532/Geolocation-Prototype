@@ -3,7 +3,7 @@
  * Follows the exact structure from rules.md
  */
 
-export type QuestType = 'MOVEMENT' | 'CHECKIN' | 'DAILY' | 'WEEKLY' | 'MYSTERY' | 'MILESTONE';
+export type QuestType = 'MOVEMENT' | 'CHECKIN' | 'DAILY' | 'WEEKLY' | 'MYSTERY' | 'MILESTONE' | 'LOCAL';
 
 export interface Quest {
     id: string;

@@ -262,6 +262,27 @@ export default function MapView({ className }: MapViewProps) {
                 </svg>
             `);
 
+            // Add Local Icon (Cyan Map Pin)
+            addImage('local-icon', `
+                <svg width="56" height="56" viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="local-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:#22d3ee;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
+                        </linearGradient>
+                        <filter id="local-shadow">
+                            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.5"/>
+                        </filter>
+                    </defs>
+                    <g filter="url(#local-shadow)">
+                        <!-- Map Pin Shape -->
+                        <path d="M28 4 C17 4 8 13 8 24 C8 39 28 52 28 52 C28 52 48 39 48 24 C48 13 39 4 28 4 Z" fill="#1a1a1a" stroke="url(#local-gradient)" stroke-width="2.5"/>
+                        <!-- Inner Dot -->
+                        <circle cx="28" cy="24" r="8" fill="url(#local-gradient)" stroke="#ffffff" stroke-width="1"/>
+                    </g>
+                </svg>
+            `);
+
             // Add empty GeoJSON source for quest markers
             map.addSource('quests', {
                 type: 'geojson',
@@ -278,7 +299,11 @@ export default function MapView({ className }: MapViewProps) {
                 source: 'quests',
                 filter: ['==', ['get', 'questType'], 'MOVEMENT'],
                 paint: {
-                    'circle-radius': 40, // Visual range
+                    'circle-radius': [
+                        'interpolate', ['exponential', 2], ['zoom'],
+                        8, 0.16,
+                        22, 2560
+                    ], // Visual range scales with zoom (40m ~= 20px at z15)
                     'circle-color': '#9d00ff',
                     'circle-opacity': 0.15,
                     'circle-stroke-width': 1,
@@ -328,7 +353,11 @@ export default function MapView({ className }: MapViewProps) {
                 source: 'quests',
                 filter: ['==', ['get', 'questType'], 'CHECKIN'],
                 paint: {
-                    'circle-radius': 50,
+                    'circle-radius': [
+                        'interpolate', ['exponential', 2], ['zoom'],
+                        8, 0.20,
+                        22, 3200
+                    ], // 50m ~= 25px at z15
                     'circle-color': '#ff0080',
                     'circle-opacity': 0.15,
                     'circle-stroke-width': 1,
@@ -391,11 +420,51 @@ export default function MapView({ className }: MapViewProps) {
                 source: 'quests',
                 filter: ['==', ['get', 'questType'], 'MYSTERY'],
                 paint: {
-                    'circle-radius': 60, // Larger Visual radius
+                    'circle-radius': [
+                        'interpolate', ['exponential', 2], ['zoom'],
+                        8, 0.12,
+                        22, 1920
+                    ], // Larger Visual radius scales with zoom (30m ~= 15px at z15)
                     'circle-color': '#FFD700',
                     'circle-opacity': 0.15,
                     'circle-stroke-width': 1,
                     'circle-stroke-color': '#FFD700',
+                    'circle-stroke-opacity': 0.5,
+                },
+            });
+
+            // --- LOCAL QUEST LAYERS ---
+
+            // Add Symbol Layer for LOCAL quests (Using SVG Icon)
+            map.addLayer({
+                id: 'quest-local-icon',
+                type: 'symbol',
+                source: 'quests',
+                filter: ['==', ['get', 'questType'], 'LOCAL'],
+                layout: {
+                    'icon-image': 'local-icon',
+                    'icon-size': 1.0,
+                    'icon-allow-overlap': true,
+                    'icon-anchor': 'bottom', // Pin points to location
+                },
+            });
+
+            // Add circle layer for local radius (Same size as mystery)
+            map.addLayer({
+                id: 'quest-local-radius',
+                type: 'circle',
+                source: 'quests',
+                filter: ['==', ['get', 'questType'], 'LOCAL'],
+                paint: {
+                    'circle-radius': [
+                        'interpolate', ['exponential', 2], ['zoom'],
+                        8, 0.12,
+                        22, 1920
+                    ], // Matches Mystery Quest Size
+                    'circle-color': '#06b6d4', // Cyan
+                    'circle-opacity': 0.15,
+                    'circle-stroke-width': 1,
+                    'circle-stroke-color': '#06b6d4',
                     'circle-stroke-opacity': 0.5,
                 },
             });
@@ -409,7 +478,11 @@ export default function MapView({ className }: MapViewProps) {
                 source: 'quests',
                 filter: ['==', ['get', 'questType'], 'MILESTONE'],
                 paint: {
-                    'circle-radius': 200, // Large visual range (~200m equivalent at zoom 15)
+                    'circle-radius': [
+                        'interpolate', ['exponential', 2], ['zoom'],
+                        8, 0.78,
+                        22, 12800
+                    ], // Large visual range (~200m ~= 100px at z15)
                     'circle-color': '#FFD700',
                     'circle-opacity': 0.2,
                     'circle-stroke-width': 2,
@@ -451,6 +524,7 @@ export default function MapView({ className }: MapViewProps) {
                 'quest-movement', 'quest-movement-range',
                 'quest-checkin', 'quest-checkin-range',
                 'quest-mystery', 'quest-mystery-radius',
+                'quest-local-icon', 'quest-local-radius',
                 'quest-milestone-icon', 'quest-milestone-range'
             ];
 

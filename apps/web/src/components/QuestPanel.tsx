@@ -130,6 +130,85 @@ export default function QuestPanel({ className }: { className?: string }) {
                             );
                         })}
 
+                    {/* Local Landmarks Section */}
+                    {nearbyQuests
+                        .filter(q => q.type === 'LOCAL')
+                        .map((quest) => {
+                            const progress = QuestManager.getProgressPercentage(
+                                quest,
+                                currentLocation,
+                                locationHistory
+                            );
+
+                            return (
+                                <div
+                                    key={quest.id}
+                                    onClick={() => {
+                                        if (quest.targetCoordinates) {
+                                            window.dispatchEvent(new CustomEvent('quest-focus', {
+                                                detail: {
+                                                    lat: quest.targetCoordinates.lat,
+                                                    lng: quest.targetCoordinates.lng
+                                                }
+                                            }));
+                                        }
+                                    }}
+                                    className="bg-cyan-500/10 border border-cyan-500/50 rounded-lg p-3 space-y-3 hover:border-cyan-400 transition-all relative overflow-hidden group cursor-pointer"
+                                >
+                                    {/* Hover Effect */}
+                                    <div className="absolute inset-0 bg-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
+                                    {/* Quest Header */}
+                                    <div className="flex items-start justify-between gap-2 relative z-10">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="text-[10px] font-bold bg-cyan-500/20 text-cyan-400 px-1.5 py-0.5 rounded border border-cyan-500/30">
+                                                    LOCAL
+                                                </span>
+                                            </div>
+                                            <h3 className="font-semibold text-sm text-cyan-100 line-clamp-2">{quest.title}</h3>
+                                            <p className="text-xs text-cyan-200/70 line-clamp-2 mt-0.5">{quest.lore || quest.description}</p>
+                                        </div>
+                                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center border border-cyan-500/30">
+                                            <MapPin className="w-4 h-4 text-cyan-400" />
+                                        </div>
+                                    </div>
+
+                                    {/* Distance Info */}
+                                    <div className="space-y-1.5 relative z-10">
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="text-cyan-200/70">Distance</span>
+                                            <span className="text-cyan-400 font-semibold">
+                                                {currentLocation && quest.targetCoordinates ?
+                                                    formatDistance(QuestManager.getDistanceToCheckIn(quest, currentLocation) || 0) :
+                                                    'Unknown'}
+                                            </span>
+                                        </div>
+                                        {quest.expirationDate && (
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="text-cyan-200/70">Expires</span>
+                                                <span className="text-cyan-400 font-semibold">
+                                                    {Math.max(0, Math.floor((new Date(quest.expirationDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))}d
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Rewards */}
+                                    <div className="flex flex-wrap gap-1.5 pt-1 relative z-10">
+                                        {quest.rewards.map((reward, idx) => (
+                                            <span
+                                                key={idx}
+                                                className="text-xs bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-2 py-1 rounded font-medium"
+                                            >
+                                                +{reward.value} {reward.type}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })}
+
                     {/* Active Quests - Filtered to only show DAILY/WEEKLY/MOVEMENT */}
                     {nearbyQuests
                         .filter(q => q.type === 'DAILY' || q.type === 'MOVEMENT' || q.type === 'CHECKIN')

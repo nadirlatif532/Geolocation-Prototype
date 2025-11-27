@@ -1,50 +1,152 @@
 [
     {
-        "id": "lore_architect_trace",
-        "title": "Faint Signal",
-        "loreText": "Your device picks up a rhythmic static. It matches the old signatures of Digit1, the Architect. Could this be a remnant of his original code?",
-        "rewardId": "data_fragment_01"
+        "id": "lost-relic",
+        "title": "Lost Relic",
+        "loreText": "A faint energy signature pulses from this location. Could it be a relic from the old world?",
+        "rewardId": "ancient-relic"
     },
     {
-        "id": "lore_corruption_spore",
-        "title": "Corrupted Soil",
-        "loreText": "The ground here is discolored, pulsing with a faint violet hue. It's a manifestation of Drystan's virus. Better scan it before it spreads.",
-        "rewardId": "antivirus_sample"
+        "id": "strange-signal",
+        "title": "Strange Signal",
+        "loreText": "Your scanner picked up a strange encrypted signal originating from here.",
+        "rewardId": "data-chip"
     },
     {
-        "id": "lore_green_cache",
-        "title": "Overgrown Stash",
-        "loreText": "Vines have wrapped tightly around a small lockbox. It bears the mark of Cera's Green Faction. Likely supplies for those fighting to maintain the shattered world.",
-        "rewardId": "herbal_pack"
+        "id": "supply-cache",
+        "title": "Supply Cache",
+        "loreText": "Old records indicate a supply drop was left in this area long ago.",
+        "rewardId": "supplies"
     },
     {
-        "id": "lore_yellow_drop",
-        "title": "Smuggler's Drop",
-        "loreText": "A nondescript package tucked behind some debris. The Yellow Faction operates here. Merivia's thieves guild doesn't leave things by accident.",
-        "rewardId": "credit_chip"
+        "id": "mysterious-anomaly",
+        "title": "Mysterious Anomaly",
+        "loreText": "The laws of physics seem to bend slightly around this specific coordinate.",
+        "rewardId": "anomaly-shard"
     },
     {
-        "id": "lore_blue_archive",
-        "title": "Lost Archive",
-        "loreText": "A data drive half-buried in the dust. It looks like Blue Faction property. Nero would kill to get this back into the library.",
-        "rewardId": "lore_entry_42"
+        "id": "forgotten-shrine",
+        "title": "Forgotten Shrine",
+        "loreText": "Locals whisper of a shrine hidden in plain sight, waiting for a worthy traveler.",
+        "rewardId": "blessing"
     },
     {
-        "id": "lore_red_munitions",
-        "title": "Spent Shell casing",
-        "loreText": "Heavy caliber casings litter the area. Agni's Red Faction was here recently. The metal is still warm.",
-        "rewardId": "ammo_scrap"
+        "id": "time-rift",
+        "title": "Time Rift",
+        "loreText": "Reality seems unstable here. Witnesses report seeing glimpses of the past and future bleeding together.",
+        "rewardId": "temporal-fragment"
     },
     {
-        "id": "lore_rift_echo",
-        "title": "Rift Echo",
-        "loreText": "The air shimmers here. A micro-rift caused by past experiments. It feels like the Shard itself is trying to pull apart.",
-        "rewardId": "rift_dust"
+        "id": "meteor-impact",
+        "title": "Meteor Impact Site",
+        "loreText": "A small meteorite crashed here decades ago. Locals say it still glows at night with an otherworldly light.",
+        "rewardId": "star-metal"
     },
     {
-        "id": "lore_ancient_coin",
-        "title": "Ancient Coin",
-        "loreText": "You spot a glint in the rubble. It looks like an ancient coin dropped by a merchant centuries ago, before the Shard broke.",
-        "rewardId": "ancient_coin"
+        "id": "phantom-broadcast",
+        "title": "Phantom Broadcast",
+        "loreText": "An old radio station that was never registered continues to broadcast music from this exact spot.",
+        "rewardId": "vintage-recording"
+    },
+    {
+        "id": "underground-network",
+        "title": "Underground Network",
+        "loreText": "Your equipment detects an extensive tunnel system beneath this location. Origins unknown.",
+        "rewardId": "tunnel-map"
+    },
+    {
+        "id": "digital-ghost",
+        "title": "Digital Ghost",
+        "loreText": "A mysterious AI fragment has been detected in the wireless networks around this area.",
+        "rewardId": "ai-core"
+    },
+    {
+        "id": "wildlife-tracker",
+        "title": "Wildlife Tracker",
+        "loreText": "A rare species has been sighted in this area. Document their presence for the conservation database.",
+        "rewardId": "specimen-data"
+    },
+    {
+        "id": "magnetic-anomaly",
+        "title": "Magnetic Anomaly",
+        "loreText": "Compasses spin wildly near this point. Something beneath the surface is affecting the magnetic field.",
+        "rewardId": "lodestone"
+    },
+    {
+        "id": "ancient-portal",
+        "title": "Ancient Portal",
+        "loreText": "Stone markers arranged in a perfect circle suggest this was once a ceremonial gateway.",
+        "rewardId": "portal-key"
+    },
+    {
+        "id": "neon-shadow",
+        "title": "Neon Shadow",
+        "loreText": "Urban explorers report a figure of pure light that appears only in the shadows of neon signs.",
+        "rewardId": "light-essence"
+    },
+    {
+        "id": "weather-nexus",
+        "title": "Weather Nexus",
+        "loreText": "Meteorologists can't explain why storm patterns always seem to center around this location.",
+        "rewardId": "storm-crystal"
+    },
+    {
+        "id": "memory-echo",
+        "title": "Memory Echo",
+        "loreText": "People passing through here often report vivid memories of events they never experienced.",
+        "rewardId": "psychic-imprint"
+    },
+    {
+        "id": "quantum-entanglement",
+        "title": "Quantum Entanglement",
+        "loreText": "Particles at this location appear to be entangled with somewhere far across the universe.",
+        "rewardId": "quantum-particle"
+    },
+    {
+        "id": "healing-spring",
+        "title": "Healing Spring",
+        "loreText": "Water from this underground spring is said to have remarkable restorative properties.",
+        "rewardId": "pure-water"
+    },
+    {
+        "id": "graffiti-prophecy",
+        "title": "Graffiti Prophecy",
+        "loreText": "Street art here depicts events that haven't happened yet. Each painting comes true eventually.",
+        "rewardId": "prophetic-sketch"
+    },
+    {
+        "id": "sound-sculpture",
+        "title": "Sound Sculpture",
+        "loreText": "Architecture and geography combine to create hauntingly beautiful natural acoustics at this spot.",
+        "rewardId": "harmonic-resonator"
+    },
+    {
+        "id": "lost-library",
+        "title": "Lost Library Entrance",
+        "loreText": "Old maps suggest a vast underground library lies beneath this seemingly ordinary location.",
+        "rewardId": "ancient-tome"
+    },
+    {
+        "id": "energy-vortex",
+        "title": "Energy Vortex",
+        "loreText": "Spiritual practitioners claim this is a convergence point of the planet's natural energy lines.",
+        "rewardId": "ley-crystal"
+    },
+    {
+        "id": "satellite-debris",
+        "title": "Satellite Debris",
+        "loreText": "A piece of decommissioned satellite technology landed here, still transmitting encrypted data.",
+        "rewardId": "space-hardware"
+    },
+    {
+        "id": "bioluminescent-fungus",
+        "title": "Bioluminescent Colony",
+        "loreText": "A rare species of glowing fungus has been discovered here, unlike anything in the scientific record.",
+        "rewardId": "bio-sample"
+    },
+    {
+        "id": "pirate-cache",
+        "title": "Pirate's Cache",
+        "loreText": "Legend says a notorious smuggler buried treasure here before vanishing without a trace.",
+        "rewardId": "doubloons"
     }
 ]

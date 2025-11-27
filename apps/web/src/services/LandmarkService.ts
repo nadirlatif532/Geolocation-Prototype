@@ -181,10 +181,103 @@ export class LandmarkService {
         return R * c;
     }
 
+    /**
+     * Fetch nearby local landmarks (cafes, parks, shops) for LOCAL quests
+     * Max distance: 2KM
+     */
+    public async fetchLocalLandmarks(lat: number, lng: number): Promise<Quest[]> {
+        const radiusMeters = 2000; // 2KM max
+        const cacheKey = `${CACHE_KEY_PREFIX}local_${lat.toFixed(3)}_${lng.toFixed(3)}`;
+        const cached = this.getFromCache(cacheKey);
+        if (cached) {
+            console.log('[LandmarkService] Returning cached local landmarks');
+            return cached;
+        }
+
+        try {
+            // Query for local POIs: cafes, restaurants, parks, playgrounds, shops
+            const elements = await this.queryOverpass(lat, lng, radiusMeters, `
+                node["amenity"~"cafe|restaurant|bar|fast_food"](around:${radiusMeters},${lat},${lng});
+                node["leisure"~"park|playground|garden|sports_centre"](around:${radiusMeters},${lat},${lng});
+                node["shop"~"convenience|supermarket|bakery|books|clothes"](around:${radiusMeters},${lat},${lng});
+                node["tourism"~"artwork|viewpoint"](around:${radiusMeters},${lat},${lng});
+            `);
+
+            const quests = elements
+                .filter(e => e.tags?.name) // Must have a name
+                .map(e => this.mapElementToLocalQuest(e, lat, lng));
+
+            this.saveToCache(cacheKey, quests);
+            return quests;
+
+        } catch (error) {
+            console.error('[LandmarkService] Error fetching local landmarks:', error);
+            return [];
+        }
+    }
+
     private calculateRewardMultiplier(distanceMeters: number): number {
         // 1.0x at 0km, 1.5x at 5km, 2.0x at 10km
         // Linear scale: 1 + (distance / 10000)
         return 1 + Math.min(distanceMeters / 10000, 1.0);
+    }
+
+    private mapElementToLocalQuest(element: OverpassElement, playerLat: number, playerLng: number): Quest {
+        const title = element.tags?.['name:en'] || element.tags?.name || 'Unknown Place';
+        const description = this.generateLocalFlavorText(element);
+
+        // Calculate distance for reward multiplier
+        const distance = this.calculateDistance(playerLat, playerLng, element.lat, element.lon);
+        const rewardMultiplier = this.calculateRewardMultiplier(distance);
+
+        return {
+            id: `local-${element.id}`,
+            type: 'LOCAL',
+            title: title,
+            description: `Visit ${title}`,
+            lore: description,
+            refreshType: 'NONE', // Local quests are managed by the quest store
+            expirationDate: this.get3DayExpiration(),
+            targetCoordinates: {
+                lat: element.lat,
+                lng: element.lon
+            },
+            radiusMeters: 30,
+            rewards: [
+                {
+                    type: 'EXP',
+                    value: Math.floor(100 * rewardMultiplier),
+                },
+                {
+                    type: 'CURRENCY',
+                    value: Math.floor(25 * rewardMultiplier),
+                }
+            ]
+        };
+    }
+
+    private generateLocalFlavorText(element: OverpassElement): string {
+        const tags = element.tags || {};
+        const type = tags.amenity || tags.leisure || tags.shop || tags.tourism || 'place';
+
+        const templates: Record<string, string[]> = {
+            'cafe': ['A cozy spot for a quick break.', 'Popular among locals for coffee.', 'Great place to relax and recharge.'],
+            'restaurant': ['Known for its local cuisine.', 'A favorite dining spot.', 'Offers a taste of local flavors.'],
+            'park': ['A peaceful green space.', 'Perfect for a relaxing walk.', 'Local favorite for outdoor activities.'],
+            'playground': ['A fun spot for community gatherings.', 'Popular with families.', 'Kids love this place!'],
+            'shop': ['A convenient local store.', 'Part of the neighborhood charm.', 'A go-to spot for residents.'],
+            'default': ['A local point of interest.', 'Part of the community fabric.', 'Worth checking out while exploring.']
+        };
+
+        const typeTemplates = templates[type] || templates['default'];
+        return typeTemplates[Math.floor(Math.random() * typeTemplates.length)];
+    }
+
+    private get3DayExpiration(): Date {
+        const date = new Date();
+        date.setDate(date.getDate() + 3);
+        date.setHours(23, 59, 59, 999);
+        return date;
     }
 
     private getNextWeeklyReset(): Date {
