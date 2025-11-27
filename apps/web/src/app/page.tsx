@@ -12,6 +12,7 @@ import ControlPanel from '@/components/ControlPanel';
 import QuestDialog from '@/components/QuestDialog';
 import DebugMenu from '@/components/DebugMenu';
 import TutorialPanel from '@/components/TutorialPanel';
+import QuestCompletionEffect from '@/components/QuestCompletionEffect';
 import { HelpCircle } from 'lucide-react';
 
 export default function Home() {
@@ -333,6 +334,9 @@ export default function Home() {
 
             {/* Quest Dialog (Mobile & Desktop) */}
             <QuestDialog />
+
+            {/* Celebration Effects */}
+            <QuestCompletionEffect />
 
             {/* Debug Info (Desktop Only) */}
             <div className="absolute bottom-6 left-6 z-10 bg-card/95 backdrop-blur-sm border border-primary/30 rounded-lg px-4 py-2.5 shadow-xl hidden md:block">

@@ -12,6 +12,7 @@ interface QuestState {
     activeQuests: Quest[];
     completedQuests: Quest[];
     questProgress: Map<string, QuestProgress>;
+    lastCompletedQuestId: string | null;
 
     // Service mode
     useMockGPS: boolean;
@@ -27,6 +28,7 @@ interface QuestState {
     setGPSMode: (useMock: boolean) => void;
     toggleQuickPlace: () => void;
     clearQuests: () => void;
+    consumeCompletedQuest: () => void;
 
     // Selectors
     getNearbyQuests: () => Quest[];
@@ -40,7 +42,11 @@ interface QuestState {
     exportSave: () => string;
     importSave: (json: string) => boolean;
     resetData: () => void;
-    generateLocalLandmarkQuests: () => Promise<void>;
+    generateLocalLandmarkQuests: (ignoreIds?: string[]) => Promise<void>;
+
+    // History
+    recentQuestHistory: string[];
+    addToQuestHistory: (ids: string[]) => void;
 }
 
 export const useQuestStore = create<QuestState>()(
@@ -52,9 +58,26 @@ export const useQuestStore = create<QuestState>()(
             activeQuests: [],
             completedQuests: [],
             questProgress: new Map(),
+            lastCompletedQuestId: null,
             useMockGPS: false, // Default to Real GPS
             quickPlaceEnabled: false,
             localLandmarkRefreshTime: 0,
+            recentQuestHistory: [],
+
+            // Add IDs to history (keep last 10)
+            addToQuestHistory: (ids: string[]) => {
+                set((state) => {
+                    // Filter out duplicates from new IDs
+                    const uniqueNewIds = ids.filter(id => !state.recentQuestHistory.includes(id));
+                    const newHistory = [...state.recentQuestHistory, ...uniqueNewIds];
+
+                    // Keep only last 10
+                    if (newHistory.length > 10) {
+                        return { recentQuestHistory: newHistory.slice(newHistory.length - 10) };
+                    }
+                    return { recentQuestHistory: newHistory };
+                });
+            },
 
             // Update user's location
             updateLocation: (location: UserLocation) => {
@@ -180,11 +203,15 @@ export const useQuestStore = create<QuestState>()(
                         activeQuests: state.activeQuests.filter((q) => q.id !== questId),
                         completedQuests: [...state.completedQuests, quest],
                         questProgress: newProgressMap,
+                        lastCompletedQuestId: questId,
                     };
                 });
 
                 // Show completion notification
                 console.log(`Quest completed: ${questId}`);
+
+                // Add to history
+                get().addToQuestHistory([questId]);
 
                 // AUTO-RESPAWN: If this was a LOCAL quest, immediately spawn a replacement
                 const completedQuest = get().completedQuests.find(q => q.id === questId);
@@ -260,20 +287,22 @@ export const useQuestStore = create<QuestState>()(
 
             // Clear all quests (Debug)
             clearQuests: () => {
-                set({ activeQuests: [], completedQuests: [], questProgress: new Map() });
+                set({ activeQuests: [], completedQuests: [], questProgress: new Map(), lastCompletedQuestId: null });
+            },
+
+            // Consume the last completed quest ID (reset to null)
+            consumeCompletedQuest: () => {
+                set({ lastCompletedQuestId: null });
             },
 
             // Generate Milestone Quests
             generateMilestoneQuests: async () => {
-                const { currentLocation, activeQuests, completedQuests } = get();
+                const { currentLocation, activeQuests, completedQuests, recentQuestHistory } = get();
                 if (!currentLocation) return;
 
                 // Check if we already have an active milestone quest
                 const hasActiveMilestone = activeQuests.some(q => q.type === 'MILESTONE');
                 if (hasActiveMilestone) return;
-
-                // Check if we recently completed one (for immediate refresh logic)
-                // In a real app, we'd check the completion time. For now, we just want to ensure there's always one available.
 
                 try {
                     const { landmarkService } = await import('@/services/LandmarkService');
@@ -284,15 +313,30 @@ export const useQuestStore = create<QuestState>()(
 
                     if (milestones.length === 0) return;
 
-                    // Filter out quests that have already been completed (by ID)
+                    // Filter out quests that have already been completed (by ID) OR are in recent history
                     const completedIds = new Set(completedQuests.map(q => q.id));
-                    const availableMilestones = milestones.filter(q => !completedIds.has(q.id));
+                    const historySet = new Set(recentQuestHistory);
+
+                    const availableMilestones = milestones.filter(q =>
+                        !completedIds.has(q.id) &&
+                        !historySet.has(q.id)
+                    );
 
                     if (availableMilestones.length > 0) {
-                        // Pick the first available one (prioritized by service)
-                        const newQuest = availableMilestones[0];
+                        // Pick a RANDOM one from the available list
+                        const randomIndex = Math.floor(Math.random() * availableMilestones.length);
+                        const newQuest = availableMilestones[randomIndex];
+
                         get().addQuest(newQuest);
                         console.log('[QuestStore] Added new milestone quest:', newQuest.title);
+                    } else {
+                        console.log('[QuestStore] No fresh milestones available (all in history/completed). Clearing history to allow repeats.');
+                        // Optional: Clear history if we run out, or just pick a random one anyway
+                        if (milestones.length > 0) {
+                            const randomIndex = Math.floor(Math.random() * milestones.length);
+                            const newQuest = milestones[randomIndex];
+                            get().addQuest(newQuest);
+                        }
                     }
                 } catch (error) {
                     console.error('[QuestStore] Failed to generate milestone quests:', error);
@@ -300,33 +344,58 @@ export const useQuestStore = create<QuestState>()(
             },
 
             // Generate Local Landmark Quests
-            generateLocalLandmarkQuests: async () => {
-                const { currentLocation, activeQuests, completedQuests } = get();
+            generateLocalLandmarkQuests: async (ignoreIds: string[] = []) => {
+                const { currentLocation, activeQuests, completedQuests, recentQuestHistory } = get();
                 if (!currentLocation) return;
 
                 try {
                     const { landmarkService } = await import('@/services/LandmarkService');
 
-                    // Fetch local landmarks
-                    const localLandmarks = await landmarkService.fetchLocalLandmarks(
+                    // 1. Try fetching local landmarks at 2km
+                    let localLandmarks = await landmarkService.fetchLocalLandmarks(
                         currentLocation.lat,
-                        currentLocation.lng
+                        currentLocation.lng,
+                        2000
                     );
 
-                    console.log(`[QuestStore] Fetched ${localLandmarks.length} local landmark candidates`);
-
-                    if (localLandmarks.length === 0) return;
-
-                    // Filter out already active or completed local quests
+                    // Filter out already active, completed, ignored, OR recent history
                     const activeLocalIds = new Set(activeQuests.filter(q => q.type === 'LOCAL').map(q => q.id));
                     const completedIds = new Set(completedQuests.map(q => q.id));
-                    const availableLandmarks = localLandmarks.filter(q =>
-                        !activeLocalIds.has(q.id) && !completedIds.has(q.id)
+                    const ignoredIdSet = new Set(ignoreIds);
+                    const historySet = new Set(recentQuestHistory);
+
+                    let availableLandmarks = localLandmarks.filter(q =>
+                        !activeLocalIds.has(q.id) &&
+                        !completedIds.has(q.id) &&
+                        !ignoredIdSet.has(q.id) &&
+                        !historySet.has(q.id)
                     );
+
+                    // 2. If not enough, try expanding to 3km
+                    if (availableLandmarks.length < 2) {
+                        console.log('[QuestStore] Not enough landmarks at 2km, expanding to 3km...');
+                        localLandmarks = await landmarkService.fetchLocalLandmarks(
+                            currentLocation.lat,
+                            currentLocation.lng,
+                            3000
+                        );
+
+                        availableLandmarks = localLandmarks.filter(q =>
+                            !activeLocalIds.has(q.id) &&
+                            !completedIds.has(q.id) &&
+                            !ignoredIdSet.has(q.id) &&
+                            !historySet.has(q.id)
+                        );
+                    }
+
+                    console.log(`[QuestStore] Found ${availableLandmarks.length} valid local landmark candidates`);
+
+                    // SHUFFLE the available landmarks to ensure random selection
+                    availableLandmarks = availableLandmarks.sort(() => Math.random() - 0.5);
 
                     // Calculate how many more LOCAL quests we need (target: 2 active)
                     const currentLocalCount = activeQuests.filter(q => q.type === 'LOCAL').length;
-                    const questsNeeded = 2 - currentLocalCount;
+                    let questsNeeded = 2 - currentLocalCount;
 
                     if (questsNeeded <= 0) {
                         console.log('[QuestStore] Already have 2 LOCAL quests active');
@@ -340,16 +409,18 @@ export const useQuestStore = create<QuestState>()(
                     for (const candidate of availableLandmarks) {
                         if (selectedQuests.length >= questsNeeded) break;
 
-                        // Check distance from already selected quests
+                        // Check distance from already selected quests AND existing active quests
                         let validSelection = true;
-                        for (const selected of selectedQuests) {
-                            if (candidate.targetCoordinates && selected.targetCoordinates) {
+                        const allToCheck = [...activeQuests.filter(q => q.type === 'LOCAL'), ...selectedQuests];
+
+                        for (const existing of allToCheck) {
+                            if (candidate.targetCoordinates && existing.targetCoordinates) {
                                 const { haversineDistance } = await import('@couch-heroes/shared');
                                 const distance = haversineDistance(
                                     candidate.targetCoordinates.lat,
                                     candidate.targetCoordinates.lng,
-                                    selected.targetCoordinates.lat,
-                                    selected.targetCoordinates.lng
+                                    existing.targetCoordinates.lat,
+                                    existing.targetCoordinates.lng
                                 );
                                 if (distance < minDistance) {
                                     validSelection = false;
@@ -360,6 +431,44 @@ export const useQuestStore = create<QuestState>()(
 
                         if (validSelection) {
                             selectedQuests.push(candidate);
+                        }
+                    }
+
+                    // 3. Fallback: If still need quests, generate "Wilderness" quests
+                    questsNeeded -= selectedQuests.length;
+                    if (questsNeeded > 0) {
+                        console.log(`[QuestStore] Still need ${questsNeeded} quests. Generating Wilderness quests...`);
+                        const { questSpawner } = await import('@/services/QuestSpawner');
+
+                        for (let i = 0; i < questsNeeded; i++) {
+                            // Generate random point 500m - 1500m away
+                            const angle = Math.random() * Math.PI * 2;
+                            const dist = 500 + Math.random() * 1000; // 500m to 1500m
+
+                            // Simple flat earth approximation for short distances
+                            const latOffset = (dist * Math.cos(angle)) / 111320;
+                            const lngOffset = (dist * Math.sin(angle)) / (111320 * Math.cos(currentLocation.lat * Math.PI / 180));
+
+                            const targetLat = currentLocation.lat + latOffset;
+                            const targetLng = currentLocation.lng + lngOffset;
+
+                            const wildernessQuest: Quest = {
+                                id: `local-wilderness-${Date.now()}-${i}`,
+                                type: 'LOCAL',
+                                title: 'Wilderness Exploration',
+                                description: 'Explore this uncharted area.',
+                                lore: 'A quiet spot away from the hustle and bustle. Who knows what you might find?',
+                                refreshType: 'NONE',
+                                expirationDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days
+                                targetCoordinates: { lat: targetLat, lng: targetLng },
+                                radiusMeters: 40,
+                                rewards: [
+                                    { type: 'EXP', value: 75 },
+                                    { type: 'CURRENCY', value: 15 }
+                                ]
+                            };
+
+                            selectedQuests.push(wildernessQuest);
                         }
                     }
 
@@ -552,6 +661,7 @@ export const useQuestStore = create<QuestState>()(
                 questProgress: Array.from(state.questProgress.entries()), // Map needs special handling
                 locationHistory: state.locationHistory,
                 useMockGPS: state.useMockGPS,
+                recentQuestHistory: state.recentQuestHistory,
             }),
             // Custom storage to handle Map serialization/deserialization
             storage: {

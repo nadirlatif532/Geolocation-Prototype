@@ -51,19 +51,19 @@ export class LandmarkService {
         }
 
         try {
-            // Priority 1: Historic Monuments & Memorials within 5km
+            // Priority 1: Historic Monuments & Memorials within 5km (Excluding Graveyards)
             let elements = await this.queryOverpass(lat, lng, Math.min(radiusMeters, 5000), `
-                node["historic"~"monument|memorial|ruins|castle"](around:${Math.min(radiusMeters, 5000)},${lat},${lng});
-                way["historic"~"monument|memorial|ruins|castle"](around:${Math.min(radiusMeters, 5000)},${lat},${lng});
+                node["historic"~"monument|memorial|ruins|castle"]["amenity"!~"grave_yard|crematorium|funeral_hall"]["landuse"!="cemetery"](around:${Math.min(radiusMeters, 5000)},${lat},${lng});
+                way["historic"~"monument|memorial|ruins|castle"]["amenity"!~"grave_yard|crematorium|funeral_hall"]["landuse"!="cemetery"](around:${Math.min(radiusMeters, 5000)},${lat},${lng});
             `);
 
             // Fallback: If few results, expand to general tourism/landmarks
             if (elements.length < 5) {
                 console.log('[LandmarkService] Few monuments found, expanding search...');
                 const generalElements = await this.queryOverpass(lat, lng, radiusMeters, `
-                    node["tourism"~"attraction|artwork|viewpoint|museum"](around:${radiusMeters},${lat},${lng});
-                    node["leisure"~"park|playground"](around:${radiusMeters},${lat},${lng});
-                    node["amenity"~"place_of_worship|cafe|restaurant"](around:${radiusMeters},${lat},${lng});
+                    node["tourism"~"attraction|artwork|viewpoint|museum"]["amenity"!~"grave_yard|crematorium|funeral_hall"]["landuse"!="cemetery"](around:${radiusMeters},${lat},${lng});
+                    node["leisure"~"park|playground"]["amenity"!~"grave_yard|crematorium|funeral_hall"]["landuse"!="cemetery"](around:${radiusMeters},${lat},${lng});
+                    node["amenity"~"place_of_worship|cafe|restaurant"]["amenity"!~"grave_yard|crematorium|funeral_hall"]["landuse"!="cemetery"](around:${radiusMeters},${lat},${lng});
                     node["shop"="mall"](around:${radiusMeters},${lat},${lng});
                     node["building"="commercial"](around:${radiusMeters},${lat},${lng});
                 `);
@@ -77,7 +77,22 @@ export class LandmarkService {
             }
 
             const quests = elements
-                .filter(e => e.tags?.name) // Must have a name
+                .filter(e => {
+                    // Strict filtering to exclude graveyards/cemeteries
+                    const name = (e.tags?.name || '').toLowerCase();
+                    const amenity = (e.tags?.amenity || '').toLowerCase();
+                    const landuse = (e.tags?.landuse || '').toLowerCase();
+                    const historic = (e.tags?.historic || '').toLowerCase();
+
+                    const forbiddenTerms = ['grave', 'cemetery', 'tomb', 'funeral', 'crematorium', 'mausoleum', 'necropolis'];
+
+                    if (forbiddenTerms.some(term => name.includes(term))) return false;
+                    if (forbiddenTerms.some(term => amenity.includes(term))) return false;
+                    if (forbiddenTerms.some(term => landuse.includes(term))) return false;
+                    if (forbiddenTerms.some(term => historic.includes(term))) return false;
+
+                    return !!e.tags?.name; // Must have a name
+                })
                 .map(e => this.mapElementToQuest(e, lat, lng));
 
             this.saveToCache(cacheKey, quests);
@@ -183,11 +198,10 @@ export class LandmarkService {
 
     /**
      * Fetch nearby local landmarks (cafes, parks, shops) for LOCAL quests
-     * Max distance: 2KM
+     * Max distance: configurable, default 2KM
      */
-    public async fetchLocalLandmarks(lat: number, lng: number): Promise<Quest[]> {
-        const radiusMeters = 2000; // 2KM max
-        const cacheKey = `${CACHE_KEY_PREFIX}local_${lat.toFixed(3)}_${lng.toFixed(3)}`;
+    public async fetchLocalLandmarks(lat: number, lng: number, radiusMeters: number = 2000): Promise<Quest[]> {
+        const cacheKey = `${CACHE_KEY_PREFIX}local_${lat.toFixed(3)}_${lng.toFixed(3)}_${radiusMeters}`;
         const cached = this.getFromCache(cacheKey);
         if (cached) {
             console.log('[LandmarkService] Returning cached local landmarks');
@@ -195,16 +209,31 @@ export class LandmarkService {
         }
 
         try {
-            // Query for local POIs: cafes, restaurants, parks, playgrounds, shops
+            // Query for local POIs: cafes, restaurants, parks, playgrounds, shops (Excluding Graveyards)
             const elements = await this.queryOverpass(lat, lng, radiusMeters, `
-                node["amenity"~"cafe|restaurant|bar|fast_food"](around:${radiusMeters},${lat},${lng});
-                node["leisure"~"park|playground|garden|sports_centre"](around:${radiusMeters},${lat},${lng});
-                node["shop"~"convenience|supermarket|bakery|books|clothes"](around:${radiusMeters},${lat},${lng});
-                node["tourism"~"artwork|viewpoint"](around:${radiusMeters},${lat},${lng});
+                node["amenity"~"cafe|restaurant|bar|fast_food"]["amenity"!~"grave_yard|crematorium|funeral_hall"]["landuse"!="cemetery"](around:${radiusMeters},${lat},${lng});
+                node["leisure"~"park|playground|garden|sports_centre"]["amenity"!~"grave_yard|crematorium|funeral_hall"]["landuse"!="cemetery"](around:${radiusMeters},${lat},${lng});
+                node["shop"~"convenience|supermarket|bakery|books|clothes"]["amenity"!~"grave_yard|crematorium|funeral_hall"]["landuse"!="cemetery"](around:${radiusMeters},${lat},${lng});
+                node["tourism"~"artwork|viewpoint"]["amenity"!~"grave_yard|crematorium|funeral_hall"]["landuse"!="cemetery"](around:${radiusMeters},${lat},${lng});
             `);
 
             const quests = elements
-                .filter(e => e.tags?.name) // Must have a name
+                .filter(e => {
+                    // Strict filtering to exclude graveyards/cemeteries
+                    const name = (e.tags?.name || '').toLowerCase();
+                    const amenity = (e.tags?.amenity || '').toLowerCase();
+                    const landuse = (e.tags?.landuse || '').toLowerCase();
+                    const historic = (e.tags?.historic || '').toLowerCase();
+
+                    const forbiddenTerms = ['grave', 'cemetery', 'tomb', 'funeral', 'crematorium', 'mausoleum', 'necropolis'];
+
+                    if (forbiddenTerms.some(term => name.includes(term))) return false;
+                    if (forbiddenTerms.some(term => amenity.includes(term))) return false;
+                    if (forbiddenTerms.some(term => landuse.includes(term))) return false;
+                    if (forbiddenTerms.some(term => historic.includes(term))) return false;
+
+                    return !!e.tags?.name; // Must have a name
+                })
                 .map(e => this.mapElementToLocalQuest(e, lat, lng));
 
             this.saveToCache(cacheKey, quests);

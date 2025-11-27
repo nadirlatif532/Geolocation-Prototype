@@ -21,31 +21,11 @@ export default function DebugMenu({ className, embedded = false }: { className?:
     const currentLocation = useQuestStore((state) => state.currentLocation);
     const addQuest = useQuestStore((state) => state.addQuest);
     const clearQuests = useQuestStore((state) => state.clearQuests);
+    const activeQuests = useQuestStore((state) => state.activeQuests);
     const userId = useAuthStore((state) => state.userId);
 
     const quickPlaceEnabled = useQuestStore((state) => state.quickPlaceEnabled);
     const toggleQuickPlace = useQuestStore((state) => state.toggleQuickPlace);
-
-    // Listen for landmark found events from MapView
-    useEffect(() => {
-        const handleLandmarkFound = (e: Event) => {
-            const customEvent = e as CustomEvent;
-            const { lat, lng, title, description } = customEvent.detail;
-
-            addQuest({
-                id: `debug-landmark-${Date.now()}`,
-                type: 'MYSTERY',
-                title: title || 'Landmark Quest',
-                description: description || 'Investigate this location.',
-                targetCoordinates: { lat, lng },
-                radiusMeters: 50,
-                rewards: [{ type: 'EXP', value: 100 }, { type: 'ITEM', value: 1, itemId: 'ancient-relic' }],
-            });
-        };
-
-        window.addEventListener('landmark-found', handleLandmarkFound);
-        return () => window.removeEventListener('landmark-found', handleLandmarkFound);
-    }, [addQuest]);
 
     const handleSpawnTestQuest = () => {
         console.log('[DebugMenu] Spawning test quest...', currentLocation);
@@ -75,17 +55,38 @@ export default function DebugMenu({ className, embedded = false }: { className?:
         addQuest(newQuest);
     };
 
-    const handleSpawnLandmarkQuest = () => {
+    const handleRespawnMysteryQuests = async () => {
         if (!currentLocation) return;
 
-        // Ask MapView to find a landmark
-        window.dispatchEvent(new CustomEvent('debug-spawn-landmark', {
-            detail: { lat: currentLocation.lat, lng: currentLocation.lng }
-        }));
+        // 1. Remove existing MYSTERY quests
+        const nonMysteryQuests = activeQuests.filter(q => q.type !== 'MYSTERY');
+        useQuestStore.setState({ activeQuests: nonMysteryQuests });
+
+        // 2. Import spawner and generate 5 new ones
+        const { questSpawner } = await import('@/services/QuestSpawner');
+        const newQuests = questSpawner.spawnLocalQuests(currentLocation.lat, currentLocation.lng);
+
+        // 3. Add them to store
+        newQuests.forEach(q => addQuest(q));
+        console.log('[DebugMenu] Respawned 5 Mystery Quests');
     };
 
-    const handleResetMap = () => {
+    const handleRespawnLocalQuests = async () => {
         if (!currentLocation) return;
+
+        // 1. Identify existing LOCAL quests to ignore in next generation
+        const existingLocalQuests = activeQuests.filter(q => q.type === 'LOCAL');
+        const ignoreIds = existingLocalQuests.map(q => q.id);
+
+        // Add to history so they don't come back immediately
+        useQuestStore.getState().addToQuestHistory(ignoreIds);
+
+        // 2. Remove existing LOCAL quests
+        const nonLocalQuests = activeQuests.filter(q => q.type !== 'LOCAL');
+        useQuestStore.setState({ activeQuests: nonLocalQuests });
+
+        // 3. Generate NEW local quests
+        await useQuestStore.getState().generateLocalLandmarkQuests();
 
         // Dispatch event for MapView to handle flyTo
         window.dispatchEvent(new CustomEvent('map-recenter', {
@@ -96,6 +97,21 @@ export default function DebugMenu({ className, embedded = false }: { className?:
     const handleTeleportToCenter = () => {
         // Dispatch event for MapView to handle teleport
         window.dispatchEvent(new CustomEvent('debug-teleport-center'));
+    };
+
+    const handleRespawnMilestoneQuest = () => {
+        const milestone = activeQuests.find(q => q.type === 'MILESTONE');
+        if (milestone) {
+            useQuestStore.getState().addToQuestHistory([milestone.id]);
+        }
+        useQuestStore.getState().refreshMilestoneQuest();
+    };
+
+    const handleResetMap = () => {
+        if (!currentLocation) return;
+        window.dispatchEvent(new CustomEvent('map-recenter', {
+            detail: { lat: currentLocation.lat, lng: currentLocation.lng }
+        }));
     };
 
     const handleRespawnQuests = async () => {
@@ -182,11 +198,27 @@ export default function DebugMenu({ className, embedded = false }: { className?:
                     </button>
 
                     <button
-                        onClick={handleSpawnLandmarkQuest}
+                        onClick={handleRespawnMysteryQuests}
                         className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium bg-secondary/50 hover:bg-secondary rounded-md transition-colors text-left"
                     >
-                        <Landmark className="w-4 h-4 text-purple-500" />
-                        Spawn Landmark Quest
+                        <RefreshCw className="w-4 h-4 text-purple-500" />
+                        Respawn Mystery Quests
+                    </button>
+
+                    <button
+                        onClick={handleRespawnLocalQuests}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium bg-secondary/50 hover:bg-secondary rounded-md transition-colors text-left"
+                    >
+                        <Landmark className="w-4 h-4 text-cyan-500" />
+                        Respawn Local Quests
+                    </button>
+
+                    <button
+                        onClick={handleRespawnMilestoneQuest}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium bg-secondary/50 hover:bg-secondary rounded-md transition-colors text-left"
+                    >
+                        <RefreshCw className="w-4 h-4 text-yellow-500" />
+                        Respawn Milestone Quest
                     </button>
 
                     <button
@@ -195,22 +227,6 @@ export default function DebugMenu({ className, embedded = false }: { className?:
                     >
                         <MapPin className="w-4 h-4 text-blue-500" />
                         Reset Map to Player
-                    </button>
-
-                    <button
-                        onClick={handleRespawnQuests}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium bg-secondary/50 hover:bg-secondary rounded-md transition-colors text-left"
-                    >
-                        <RefreshCw className="w-4 h-4 text-orange-500" />
-                        Respawn Quests
-                    </button>
-
-                    <button
-                        onClick={() => useQuestStore.getState().refreshMilestoneQuest()}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium bg-secondary/50 hover:bg-secondary rounded-md transition-colors text-left"
-                    >
-                        <RefreshCw className="w-4 h-4 text-yellow-500" />
-                        Refresh Milestone (Max 10/hr)
                     </button>
 
                     <div className="pt-2 border-t border-destructive/20">

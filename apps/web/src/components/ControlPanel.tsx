@@ -33,6 +33,9 @@ export default function ControlPanel({ className }: { className?: string }) {
         if (!currentLocation || isScanning) return;
 
         setIsScanning(true);
+        // Clear existing quests to replace them (similar to respawn)
+        useQuestStore.getState().clearQuests();
+
         try {
             const result = await apiService.scanQuests(userId, currentLocation.lat, currentLocation.lng);
 
@@ -169,8 +172,8 @@ export default function ControlPanel({ className }: { className?: string }) {
                             onClick={handleResetData}
                             onBlur={() => setTimeout(() => setShowResetConfirm(false), 200)}
                             className={`w-full ${showResetConfirm
-                                    ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'
-                                    : 'bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/50'
+                                ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'
+                                : 'bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/50'
                                 } rounded-lg py-2 px-3 text-xs font-medium transition-all flex items-center justify-center gap-2`}
                         >
                             <Trash2 className="w-3 h-3" />
