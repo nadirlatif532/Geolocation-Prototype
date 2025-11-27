@@ -19,6 +19,11 @@ interface QuestState {
     quickPlaceEnabled: boolean;
     mapTheme: 'default' | 'cyber';
 
+    // Quest initialization state
+    isLoadingQuests: boolean;
+    questsInitialized: boolean;
+    hasHydrated: boolean;
+
     // Actions
     updateLocation: (location: UserLocation) => void;
     addQuest: (quest: Quest) => void;
@@ -31,6 +36,8 @@ interface QuestState {
     toggleMapTheme: () => void;
     clearQuests: () => void;
     consumeCompletedQuest: () => void;
+    setQuestsLoading: (loading: boolean) => void;
+    setQuestsInitialized: (initialized: boolean) => void;
 
     // Selectors
     getNearbyQuests: () => Quest[];
@@ -66,6 +73,9 @@ export const useQuestStore = create<QuestState>()(
             mapTheme: 'cyber', // Default to Cyber
             localLandmarkRefreshTime: 0,
             recentQuestHistory: [],
+            isLoadingQuests: false,
+            questsInitialized: false,
+            hasHydrated: false,
 
             // Add IDs to history (keep last 10)
             addToQuestHistory: (ids: string[]) => {
@@ -107,6 +117,12 @@ export const useQuestStore = create<QuestState>()(
             // Add a new quest
             addQuest: (quest: Quest) => {
                 set((state) => {
+                    // Prevent duplicate quests
+                    if (state.activeQuests.some(q => q.id === quest.id)) {
+                        console.warn('[QuestStore] Quest already exists, skipping:', quest.id);
+                        return state;
+                    }
+
                     const progress: QuestProgress = {
                         questId: quest.id,
                         userId: 'local-user', // TODO: Replace with actual user ID
@@ -288,6 +304,16 @@ export const useQuestStore = create<QuestState>()(
             // Consume the last completed quest ID (reset to null)
             consumeCompletedQuest: () => {
                 set({ lastCompletedQuestId: null });
+            },
+
+            // Set quests loading state
+            setQuestsLoading: (loading: boolean) => {
+                set({ isLoadingQuests: loading });
+            },
+
+            // Set quests initialized state
+            setQuestsInitialized: (initialized: boolean) => {
+                set({ questsInitialized: initialized });
             },
 
             // Generate Milestone Quests
@@ -647,6 +673,13 @@ export const useQuestStore = create<QuestState>()(
                 useMockGPS: state.useMockGPS,
                 recentQuestHistory: state.recentQuestHistory,
             }),
+            onRehydrateStorage: () => (state) => {
+                // Called after localStorage is loaded
+                if (state) {
+                    state.hasHydrated = true;
+                    console.log('[QuestStore] Hydrated from localStorage:', state.activeQuests.length, 'active quests');
+                }
+            },
             // Custom storage to handle Map serialization/deserialization
             storage: {
                 getItem: (name) => {

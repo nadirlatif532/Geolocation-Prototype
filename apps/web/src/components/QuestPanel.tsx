@@ -4,13 +4,14 @@ import { useEffect, useState } from 'react';
 import { useQuestStore } from '@/store/questStore';
 import { QuestManager } from '@/lib/QuestManager';
 import { formatDistance } from '@couch-heroes/shared';
-import { MapPin, Target, Trophy } from 'lucide-react';
+import { MapPin, Target, Trophy, Loader2 } from 'lucide-react';
 
 export default function QuestPanel({ className }: { className?: string }) {
     const nearbyQuests = useQuestStore((state) => state.getNearbyQuests());
     const completedQuests = useQuestStore((state) => state.completedQuests);
     const currentLocation = useQuestStore((state) => state.currentLocation);
     const locationHistory = useQuestStore((state) => state.locationHistory);
+    const isLoadingQuests = useQuestStore((state) => state.isLoadingQuests);
 
     const [mounted, setMounted] = useState(false);
 
@@ -27,7 +28,26 @@ export default function QuestPanel({ className }: { className?: string }) {
                         <h2 className="font-display text-xl font-bold text-primary tracking-wide">QUESTS</h2>
                     </div>
                     <div className="p-4">
-                        <p className="text-sm text-muted-foreground">Loading quests...</p>
+                        <p className="text-sm text-muted-foreground">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Show loading while quests are being fetched
+    if (isLoadingQuests && nearbyQuests.length === 0) {
+        return (
+            <div className={`w-full md:w-80 ${className || ''}`}>
+                <div className="bg-card border border-border rounded-lg overflow-hidden shadow-2xl">
+                    <div className="bg-gradient-to-r from-primary/20 to-transparent px-4 py-3 border-b border-border">
+                        <h2 className="font-display text-xl font-bold text-primary tracking-wide">QUESTS</h2>
+                    </div>
+                    <div className="p-4">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Discovering quests nearby...</span>
+                        </div>
                     </div>
                 </div>
             </div>

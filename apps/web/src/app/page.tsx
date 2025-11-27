@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useQuestStore } from '@/store/questStore';
 import { apiService } from '@/services/api';
 import { geolocationService } from '@/services/GeolocationService';
@@ -27,55 +27,84 @@ export default function Home() {
     // Wake Lock: Prevent screen from sleeping during quest tracking
     useWakeLock();
 
+    // Ref to prevent concurrent quest initialization
+    const isInitializingRef = useRef(false);
+
     // Helper to initialize quests (Deferred until location is found)
     const initializeQuests = async (lat: number, lng: number) => {
-        // Only add quests if none exist
-        if (useQuestStore.getState().activeQuests.length > 0) return;
-
-        console.log('[Home] Initializing quests at:', lat, lng);
-
-        // Generate milestone quest (1 quest) - uses deduplication logic in store
-        await useQuestStore.getState().generateMilestoneQuests();
-
-        // Generate local landmark quests (2 quests) - uses deduplication logic in store
-        await useQuestStore.getState().generateLocalLandmarkQuests();
-
-        // Generate mystery quests (5 quests)
-        try {
-            const result = await apiService.scanQuests('local-user', lat, lng);
-            if (result.quests && Array.isArray(result.quests)) {
-                result.quests.forEach((quest) => addQuest(quest));
-            }
-        } catch (error) {
-            console.error('[Home] Failed to generate mystery quests:', error);
+        // Prevent concurrent initialization
+        if (isInitializingRef.current) {
+            console.log('[Home] Quest initialization already in progress, skipping...');
+            return;
         }
 
-        // Add movement quests
-        addQuest({
-            id: 'quest-movement-1',
-            type: 'MOVEMENT',
-            title: 'Morning Walk',
-            description: 'Walk 1000 meters to stay active!',
-            targetDistanceMeters: 1000,
-            currentDistanceMeters: 0,
-            rewards: [
-                { type: 'EXP', value: 100 },
-                { type: 'CURRENCY', value: 50 },
-            ],
-        });
+        const state = useQuestStore.getState();
 
-        addQuest({
-            id: 'quest-movement-2',
-            type: 'MOVEMENT',
-            title: 'Daily Exercise',
-            description: 'Complete 5km to maintain your hero status',
-            targetDistanceMeters: 5000,
-            currentDistanceMeters: 0,
-            rewards: [
-                { type: 'EXP', value: 500 },
-                { type: 'CURRENCY', value: 200 },
-            ],
-        });
+        // IMPORTANT: Wait for hydration to complete before checking quest count
+        if (!state.hasHydrated) {
+            console.log('[Home] Waiting for hydration to complete before initializing quests...');
+            return;
+        }
+
+        // If we have saved quests or already initialized, skip
+        if (state.questsInitialized || state.activeQuests.length > 0) {
+            console.log('[Home] Quests already exist (from save or previous init), skipping initialization.');
+            return;
+        }
+
+        isInitializingRef.current = true;
+        state.setQuestsLoading(true);
+
+        try {
+            console.log('[Home] Initializing quests at:', lat, lng);
+
+            // Generate milestone quest (1 quest) - uses deduplication logic in store
+            await useQuestStore.getState().generateMilestoneQuests();
+
+            // Generate local landmark quests (2 quests) - uses deduplication logic in store
+            await useQuestStore.getState().generateLocalLandmarkQuests();
+
+            // Generate mystery quests (5 quests)
+            try {
+                const result = await apiService.scanQuests('local-user', lat, lng);
+                if (result.quests && Array.isArray(result.quests)) {
+                    result.quests.forEach((quest) => addQuest(quest));
+                }
+            } catch (error) {
+                console.error('[Home] Failed to generate mystery quests:', error);
+            }
+
+            // Add movement quests (these have fixed IDs so addQuest will prevent duplicates)
+            addQuest({
+                id: 'quest-movement-1',
+                type: 'MOVEMENT',
+                title: 'Morning Walk',
+                description: 'Walk 1000 meters to stay active!',
+                targetDistanceMeters: 1000,
+                currentDistanceMeters: 0,
+                rewards: [
+                    { type: 'EXP', value: 100 },
+                    { type: 'CURRENCY', value: 50 },
+                ],
+            });
+
+            addQuest({
+                id: 'quest-movement-2',
+                type: 'MOVEMENT',
+                title: 'Daily Exercise',
+                description: 'Complete 5km to maintain your hero status',
+                targetDistanceMeters: 5000,
+                currentDistanceMeters: 0,
+                rewards: [
+                    { type: 'EXP', value: 500 },
+                    { type: 'CURRENCY', value: 200 },
+                ],
+            });
+        } finally {
+            isInitializingRef.current = false;
+            state.setQuestsLoading(false);
+            state.setQuestsInitialized(true);
+        }
     };
 
     // Initialize location tracking
@@ -182,6 +211,17 @@ export default function Home() {
             service.stopWatching();
         };
     }, [useMockGPS, updateLocation, addQuest, setGPSMode]);
+
+    // Handle quest restoration from localStorage
+    useEffect(() => {
+        const state = useQuestStore.getState();
+
+        // If hydrated and we have saved quests, mark as initialized
+        if (state.hasHydrated && state.activeQuests.length > 0) {
+            console.log('[Home] Restored quests from save:', state.activeQuests.length);
+            state.setQuestsInitialized(true);
+        }
+    }, []);
 
     const toggleDrawer = (drawer: 'quests' | 'controls' | 'debug') => {
         setOpenDrawer(openDrawer === drawer ? 'none' : drawer);
