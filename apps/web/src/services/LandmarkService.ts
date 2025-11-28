@@ -51,15 +51,25 @@ export class LandmarkService {
         }
 
         try {
-            // Priority 1: Historic Monuments & Memorials within 5km (Excluding Graveyards)
-            let elements = await this.queryOverpass(lat, lng, Math.min(radiusMeters, 5000), `
-                node["historic"~"monument|memorial|ruins|castle"]["amenity"!~"grave_yard|crematorium|funeral_hall"]["landuse"!="cemetery"](around:${Math.min(radiusMeters, 5000)},${lat},${lng});
-                way["historic"~"monument|memorial|ruins|castle"]["amenity"!~"grave_yard|crematorium|funeral_hall"]["landuse"!="cemetery"](around:${Math.min(radiusMeters, 5000)},${lat},${lng});
+            // Single comprehensive query combining heritage and historic monuments
+            // Prioritizes heritage sites with wikidata/wikipedia, then expands to all heritage and historic sites
+            console.log('[LandmarkService] Querying heritage and historic landmarks...');
+            let elements = await this.queryOverpass(lat, lng, radiusMeters, `
+                node["heritage"]["wikidata"]["amenity"!~"grave_yard|crematorium|funeral_hall"]["landuse"!="cemetery"](around:${radiusMeters},${lat},${lng});
+                way["heritage"]["wikidata"]["amenity"!~"grave_yard|crematorium|funeral_hall"]["landuse"!="cemetery"](around:${radiusMeters},${lat},${lng});
+                node["heritage"]["wikipedia"]["amenity"!~"grave_yard|crematorium|funeral_hall"]["landuse"!="cemetery"](around:${radiusMeters},${lat},${lng});
+                way["heritage"]["wikipedia"]["amenity"!~"grave_yard|crematorium|funeral_hall"]["landuse"!="cemetery"](around:${radiusMeters},${lat},${lng});
+                node["heritage"]["amenity"!~"grave_yard|crematorium|funeral_hall"]["landuse"!="cemetery"](around:${radiusMeters},${lat},${lng});
+                way["heritage"]["amenity"!~"grave_yard|crematorium|funeral_hall"]["landuse"!="cemetery"](around:${radiusMeters},${lat},${lng});
+                node["historic"~"monument|memorial|ruins|castle|archaeological_site"]["amenity"!~"grave_yard|crematorium|funeral_hall"]["landuse"!="cemetery"](around:${radiusMeters},${lat},${lng});
+                way["historic"~"monument|memorial|ruins|castle|archaeological_site"]["amenity"!~"grave_yard|crematorium|funeral_hall"]["landuse"!="cemetery"](around:${radiusMeters},${lat},${lng});
             `);
 
-            // Fallback: If few results, expand to general tourism/landmarks
-            if (elements.length < 5) {
-                console.log('[LandmarkService] Few monuments found, expanding search...');
+            console.log(`[LandmarkService] Found ${elements.length} heritage/historic landmarks`);
+
+            // Fallback: Only if very few results, expand to general tourism/landmarks
+            if (elements.length < 3) {
+                console.log('[LandmarkService] Few results, expanding to general landmarks...');
                 const generalElements = await this.queryOverpass(lat, lng, radiusMeters, `
                     node["tourism"~"attraction|artwork|viewpoint|museum"]["amenity"!~"grave_yard|crematorium|funeral_hall"]["landuse"!="cemetery"](around:${radiusMeters},${lat},${lng});
                     node["leisure"~"park|playground"]["amenity"!~"grave_yard|crematorium|funeral_hall"]["landuse"!="cemetery"](around:${radiusMeters},${lat},${lng});
@@ -74,6 +84,7 @@ export class LandmarkService {
                         elements.push(e);
                     }
                 });
+                console.log(`[LandmarkService] Total after expansion: ${elements.length}`);
             }
 
             const quests = elements

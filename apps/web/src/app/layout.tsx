@@ -25,7 +25,8 @@ export const metadata: Metadata = {
     description: 'Hybrid web/mobile geolocation companion app for MMO adventures',
     manifest: '/manifest.json',
     icons: {
-        icon: '/favicon.ico',
+        icon: '/couch-heroes-logo.png',
+        apple: '/couch-heroes-logo.png',
     },
 };
 
