@@ -216,10 +216,17 @@ export default function Home() {
     useEffect(() => {
         const state = useQuestStore.getState();
 
-        // If hydrated and we have saved quests, mark as initialized
-        if (state.hasHydrated && state.activeQuests.length > 0) {
-            console.log('[Home] Restored quests from save:', state.activeQuests.length);
-            state.setQuestsInitialized(true);
+        // If hydrated, check for expired quests first
+        if (state.hasHydrated) {
+            // Clean up any expired milestone or local quests
+            state.checkExpiredQuests();
+
+            // Then check if we have saved quests (after potential cleanup)
+            const updatedState = useQuestStore.getState();
+            if (updatedState.activeQuests.length > 0) {
+                console.log('[Home] Restored quests from save:', updatedState.activeQuests.length);
+                updatedState.setQuestsInitialized(true);
+            }
         }
     }, []);
 

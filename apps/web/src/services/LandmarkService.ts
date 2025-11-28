@@ -143,7 +143,7 @@ export class LandmarkService {
             description: `Visit ${title}`,
             lore: description,
             refreshType: 'WEEKLY',
-            expirationDate: this.getNextWeeklyReset(),
+            expirationDate: this.get7DayExpiration(), // Changed from getNextWeeklyReset()
             targetCoordinates: {
                 lat: element.lat,
                 lng: element.lon
@@ -307,6 +307,12 @@ export class LandmarkService {
         date.setDate(date.getDate() + 3);
         date.setHours(23, 59, 59, 999);
         return date;
+    }
+
+    private get7DayExpiration(): Date {
+        const now = new Date();
+        const expiry = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000)); // 7 days from now
+        return expiry;
     }
 
     private getNextWeeklyReset(): Date {

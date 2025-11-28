@@ -52,6 +52,8 @@ interface QuestState {
     importSave: (json: string) => boolean;
     resetData: () => void;
     generateLocalLandmarkQuests: (ignoreIds?: string[]) => Promise<void>;
+    checkExpiredQuests: () => void;
+    clearCompletedQuests: () => void;
 
     // History
     recentQuestHistory: string[];
@@ -314,6 +316,55 @@ export const useQuestStore = create<QuestState>()(
             // Set quests initialized state
             setQuestsInitialized: (initialized: boolean) => {
                 set({ questsInitialized: initialized });
+            },
+
+            // Check for and remove expired quests
+            checkExpiredQuests: () => {
+                set((state) => {
+                    const now = Date.now();
+                    const expiredMilestones: string[] = [];
+                    const expiredLocal: string[] = [];
+
+                    // Find expired quests (milestone and local)
+                    const stillActiveQuests = state.activeQuests.filter(quest => {
+                        if (quest.expirationDate) {
+                            const isExpired = new Date(quest.expirationDate).getTime() < now;
+                            if (isExpired) {
+                                console.log('[QuestStore] Quest expired:', quest.type, quest.title);
+
+                                if (quest.type === 'MILESTONE') {
+                                    expiredMilestones.push(quest.id);
+                                } else if (quest.type === 'LOCAL') {
+                                    expiredLocal.push(quest.id);
+                                }
+
+                                return false; // Remove from active quests
+                            }
+                        }
+                        return true; // Keep quest
+                    });
+
+                    // If quests were removed, trigger regeneration
+                    const needsRegeneration = expiredMilestones.length > 0 || expiredLocal.length > 0;
+
+                    if (needsRegeneration) {
+                        console.log('[QuestStore] Removed expired quests - Milestone:', expiredMilestones.length, 'Local:', expiredLocal.length);
+
+                        // Mark as not initialized to trigger new quest generation
+                        return {
+                            activeQuests: stillActiveQuests,
+                            questsInitialized: false
+                        };
+                    }
+
+                    return state;
+                });
+            },
+
+            // Clear all completed quests
+            clearCompletedQuests: () => {
+                set({ completedQuests: [] });
+                console.log('[QuestStore] Cleared all completed quests');
             },
 
             // Generate Milestone Quests
@@ -657,10 +708,17 @@ export const useQuestStore = create<QuestState>()(
                     localLandmarkRefreshTime: 0,
                 });
 
-                // Clear localStorage
+                // Clear quest storage
                 localStorage.removeItem('quest-storage');
 
-                console.log('[QuestStore] All data has been reset');
+                // Clear landmark cache (to ensure fresh quests with new expiry dates)
+                Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('landmark_cache_')) {
+                        localStorage.removeItem(key);
+                    }
+                });
+
+                console.log('[QuestStore] All data has been reset (including landmark cache)');
             },
         }),
         {

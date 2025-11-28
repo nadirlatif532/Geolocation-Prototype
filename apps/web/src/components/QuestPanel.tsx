@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useQuestStore } from '@/store/questStore';
 import { QuestManager } from '@/lib/QuestManager';
 import { formatDistance } from '@couch-heroes/shared';
-import { MapPin, Target, Trophy, Loader2 } from 'lucide-react';
+import { MapPin, Target, Trophy, Loader2, Trash2 } from 'lucide-react';
 
 export default function QuestPanel({ className }: { className?: string }) {
     const nearbyQuests = useQuestStore((state) => state.getNearbyQuests());
@@ -12,6 +12,7 @@ export default function QuestPanel({ className }: { className?: string }) {
     const currentLocation = useQuestStore((state) => state.currentLocation);
     const locationHistory = useQuestStore((state) => state.locationHistory);
     const isLoadingQuests = useQuestStore((state) => state.isLoadingQuests);
+    const clearCompletedQuests = useQuestStore((state) => state.clearCompletedQuests);
 
     const [mounted, setMounted] = useState(false);
 
@@ -133,6 +134,14 @@ export default function QuestPanel({ className }: { className?: string }) {
                                                     'Unknown'}
                                             </span>
                                         </div>
+                                        {quest.expirationDate && (
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="text-yellow-200/70">Expires In</span>
+                                                <span className="text-yellow-400 font-semibold">
+                                                    {Math.max(0, Math.ceil((new Date(quest.expirationDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))}d
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Rewards */}
@@ -306,11 +315,20 @@ export default function QuestPanel({ className }: { className?: string }) {
                     {/* Completed Section */}
                     {completedQuests.length > 0 && (
                         <div className="border-t border-border/50 pt-3 mt-3">
-                            <div className="flex items-center gap-2 mb-3">
-                                <Trophy className="w-4 h-4 text-primary" />
-                                <h3 className="font-display text-sm font-bold text-primary">
-                                    COMPLETED ({completedQuests.length})
-                                </h3>
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                    <Trophy className="w-4 h-4 text-primary" />
+                                    <h3 className="font-display text-sm font-bold text-primary">
+                                        COMPLETED ({completedQuests.length})
+                                    </h3>
+                                </div>
+                                <button
+                                    onClick={() => clearCompletedQuests()}
+                                    className="p-1 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
+                                    title="Clear completed quests"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
                             </div>
                             <div className="space-y-1.5">
                                 {completedQuests.slice(0, 5).map((quest) => (
