@@ -64,7 +64,7 @@ export default function DebugMenu({ className, embedded = false }: { className?:
 
         // 2. Import spawner and generate 5 new ones
         const { questSpawner } = await import('@/services/QuestSpawner');
-        const newQuests = questSpawner.spawnLocalQuests(currentLocation.lat, currentLocation.lng);
+        const newQuests = await questSpawner.spawnLocalQuests(currentLocation.lat, currentLocation.lng);
 
         // 3. Add them to store
         newQuests.forEach(q => addQuest(q));
