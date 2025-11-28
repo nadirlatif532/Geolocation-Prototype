@@ -66,15 +66,15 @@ class ApiService {
     /**
      * Scan for local mystery quests
      */
-    async scanQuests(userId: string, lat: number, lng: number): Promise<ScanResponse> {
+    async scanQuests(userId: string, lat: number, lng: number, excludeLandmarkIds: string[] = []): Promise<ScanResponse> {
         // CLIENT-ONLY MODE:
         // Instead of fetching from API, we generate locally.
-        console.log(`[API] (Client-Only) Scanning for quests for user ${userId} at ${lat}, ${lng}`);
+        console.log(`[API] (Client-Only) Scanning for quests for user ${userId} at ${lat}, ${lng}, excluding ${excludeLandmarkIds.length} landmarks`);
 
         // Simulate network delay for realism
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        const quests = questSpawner.spawnLocalQuests(lat, lng);
+        const quests = await questSpawner.spawnLocalQuests(lat, lng, excludeLandmarkIds);
 
         return { quests };
     }

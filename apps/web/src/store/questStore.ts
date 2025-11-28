@@ -55,6 +55,10 @@ interface QuestState {
     checkExpiredQuests: () => void;
     clearCompletedQuests: () => void;
 
+    // Quest Respawning
+    isQuestOutOfRange: (questId: string) => boolean;
+    respawnQuest: (questId: string) => Promise<void>;
+
     // History
     recentQuestHistory: string[];
     addToQuestHistory: (ids: string[]) => void;
@@ -109,8 +113,48 @@ export const useQuestStore = create<QuestState>()(
                     };
                 });
 
+                // Auto-remove MYSTERY quests that are too far (>3KM)
+                // MILESTONE and LOCAL quests show respawn button instead
+                const { activeQuests, questsInitialized } = get();
+
+                if (questsInitialized && activeQuests.length > 0) {
+                    const mysteryQuestsToRemove: string[] = [];
+
+                    activeQuests.forEach((quest) => {
+                        // Only check MYSTERY quests for auto-removal
+                        if (quest.type !== 'MYSTERY' || !quest.targetCoordinates) return;
+
+                        const distanceToQuest = haversineDistance(
+                            location.lat,
+                            location.lng,
+                            quest.targetCoordinates.lat,
+                            quest.targetCoordinates.lng
+                        );
+
+                        if (distanceToQuest > 3000) { // 3KM threshold for mystery quests
+                            console.log(`[QuestStore] MYSTERY quest "${quest.title}" is ${(distanceToQuest / 1000).toFixed(1)}km away. Removing...`);
+                            mysteryQuestsToRemove.push(quest.id);
+                        }
+                    });
+
+                    // Remove far mystery quests and trigger regeneration
+                    if (mysteryQuestsToRemove.length > 0) {
+                        const remainingQuests = activeQuests.filter((q) => !mysteryQuestsToRemove.includes(q.id));
+                        const newProgressMap = new Map(get().questProgress);
+                        mysteryQuestsToRemove.forEach((id) => newProgressMap.delete(id));
+
+                        set({
+                            activeQuests: remainingQuests,
+                            questProgress: newProgressMap,
+                            questsInitialized: false, // Trigger mystery quest regeneration
+                        });
+
+                        console.log(`[QuestStore] Removed ${mysteryQuestsToRemove.length} far mystery quests. Will regenerate.`);
+                        return; // Skip quest progress updates this cycle
+                    }
+                }
+
                 // Auto-update quest progress when location changes
-                const { activeQuests } = get();
                 activeQuests.forEach((quest) => {
                     get().updateQuestProgress(quest.id);
                 });
@@ -365,6 +409,65 @@ export const useQuestStore = create<QuestState>()(
             clearCompletedQuests: () => {
                 set({ completedQuests: [] });
                 console.log('[QuestStore] Cleared all completed quests');
+            },
+
+            // Check if a quest is too far from the player
+            isQuestOutOfRange: (questId: string) => {
+                const { activeQuests, currentLocation } = get();
+                const quest = activeQuests.find((q) => q.id === questId);
+
+                if (!quest || !currentLocation || !quest.targetCoordinates) return false;
+                if (quest.type === 'MOVEMENT' || quest.type === 'MYSTERY') return false;
+
+                const distance = haversineDistance(
+                    currentLocation.lat,
+                    currentLocation.lng,
+                    quest.targetCoordinates.lat,
+                    quest.targetCoordinates.lng
+                );
+
+                // Different thresholds for different quest types
+                const maxDistance = quest.type === 'MILESTONE' ? 6000 : 3000; // 6KM for milestone, 3KM for local
+                return distance > maxDistance;
+            },
+
+            // Manually respawn a MILESTONE or LOCAL quest at the player's current location
+            respawnQuest: async (questId: string) => {
+                const { activeQuests, currentLocation } = get();
+                const quest = activeQuests.find((q) => q.id === questId);
+
+                if (!quest || !currentLocation) {
+                    console.warn('[QuestStore] Cannot respawn: quest or location not found');
+                    return;
+                }
+
+                if (quest.type !== 'MILESTONE' && quest.type !== 'LOCAL') {
+                    console.warn('[QuestStore] Can only respawn MILESTONE or LOCAL quests');
+                    return;
+                }
+
+                console.log(`[QuestStore] Respawning ${quest.type} quest: ${quest.title}`);
+
+                // Remove the old quest
+                set((state) => {
+                    const newProgressMap = new Map(state.questProgress);
+                    newProgressMap.delete(questId);
+
+                    return {
+                        activeQuests: state.activeQuests.filter((q) => q.id !== questId),
+                        questProgress: newProgressMap,
+                    };
+                });
+
+                // Generate new quest of the same type at current location
+                if (quest.type === 'MILESTONE') {
+                    await get().generateMilestoneQuests();
+                } else if (quest.type === 'LOCAL') {
+                    // Respawn one local quest (generateLocalLandmarkQuests ensures we maintain 2 total)
+                    await get().generateLocalLandmarkQuests();
+                }
+
+                console.log(`[QuestStore] Successfully respawned ${quest.type} quest`);
             },
 
             // Generate Milestone Quests

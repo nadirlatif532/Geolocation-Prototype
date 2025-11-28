@@ -64,9 +64,15 @@ export default function Home() {
             // Generate local landmark quests (2 quests) - uses deduplication logic in store
             await useQuestStore.getState().generateLocalLandmarkQuests();
 
-            // Generate mystery quests (5 quests)
+            // Generate mystery quests (5 quests) - exclude existing landmark IDs
             try {
-                const result = await apiService.scanQuests('local-user', lat, lng);
+                // Collect IDs from existing MILESTONE and LOCAL quests to avoid spawning near same landmarks
+                const state = useQuestStore.getState();
+                const excludeLandmarkIds = state.activeQuests
+                    .filter(q => q.type === 'MILESTONE' || q.type === 'LOCAL')
+                    .map(q => q.id);
+
+                const result = await apiService.scanQuests('local-user', lat, lng, excludeLandmarkIds);
                 if (result.quests && Array.isArray(result.quests)) {
                     result.quests.forEach((quest) => addQuest(quest));
                 }

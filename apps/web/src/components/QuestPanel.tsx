@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useQuestStore } from '@/store/questStore';
 import { QuestManager } from '@/lib/QuestManager';
 import { formatDistance } from '@couch-heroes/shared';
-import { MapPin, Target, Trophy, Loader2, Trash2 } from 'lucide-react';
+import { MapPin, Target, Trophy, Loader2, Trash2, RefreshCw } from 'lucide-react';
+import { ConfirmDialog } from './ConfirmDialog';
 
 export default function QuestPanel({ className }: { className?: string }) {
     const nearbyQuests = useQuestStore((state) => state.getNearbyQuests());
@@ -13,8 +14,11 @@ export default function QuestPanel({ className }: { className?: string }) {
     const locationHistory = useQuestStore((state) => state.locationHistory);
     const isLoadingQuests = useQuestStore((state) => state.isLoadingQuests);
     const clearCompletedQuests = useQuestStore((state) => state.clearCompletedQuests);
+    const isQuestOutOfRange = useQuestStore((state) => state.isQuestOutOfRange);
+    const respawnQuest = useQuestStore((state) => state.respawnQuest);
 
     const [mounted, setMounted] = useState(false);
+    const [questToRespawn, setQuestToRespawn] = useState<string | null>(null);
 
     useEffect(() => {
         setMounted(true);
@@ -89,6 +93,7 @@ export default function QuestPanel({ className }: { className?: string }) {
                                 currentLocation,
                                 locationHistory
                             );
+                            const isOutOfRange = isQuestOutOfRange(quest.id);
 
                             return (
                                 <div
@@ -155,6 +160,21 @@ export default function QuestPanel({ className }: { className?: string }) {
                                             </span>
                                         ))}
                                     </div>
+
+                                    {/* Respawn Button (if out of range) */}
+                                    {isOutOfRange && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setQuestToRespawn(quest.id);
+                                            }}
+                                            className="w-full mt-2 px-3 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 rounded-lg text-xs font-semibold text-yellow-300 flex items-center justify-center gap-2 transition-colors relative z-10"
+                                            title="This quest is too far away. Respawn it at your current location?"
+                                        >
+                                            <RefreshCw className="w-3.5 h-3.5" />
+                                            Respawn Quest (Too Far)
+                                        </button>
+                                    )}
                                 </div>
                             );
                         })}
@@ -168,6 +188,7 @@ export default function QuestPanel({ className }: { className?: string }) {
                                 currentLocation,
                                 locationHistory
                             );
+                            const isOutOfRange = isQuestOutOfRange(quest.id);
 
                             return (
                                 <div
@@ -234,6 +255,21 @@ export default function QuestPanel({ className }: { className?: string }) {
                                             </span>
                                         ))}
                                     </div>
+
+                                    {/* Respawn Button (if out of range) */}
+                                    {isOutOfRange && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setQuestToRespawn(quest.id);
+                                            }}
+                                            className="w-full mt-2 px-3 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/50 rounded-lg text-xs font-semibold text-cyan-300 flex items-center justify-center gap-2 transition-colors relative z-10"
+                                            title="This quest is too far away. Respawn it at your current location?"
+                                        >
+                                            <RefreshCw className="w-3.5 h-3.5" />
+                                            Respawn Quest (Too Far)
+                                        </button>
+                                    )}
                                 </div>
                             );
                         })}
@@ -344,6 +380,19 @@ export default function QuestPanel({ className }: { className?: string }) {
                     )}
                 </div>
             </div>
+
+            {/* Confirmation Dialog for Quest Respawn */}
+            {questToRespawn && (
+                <ConfirmDialog
+                    title="Respawn Quest?"
+                    message="Replace this quest with a new one at your current location? This cannot be undone."
+                    onConfirm={() => {
+                        respawnQuest(questToRespawn);
+                        setQuestToRespawn(null);
+                    }}
+                    onCancel={() => setQuestToRespawn(null)}
+                />
+            )}
         </div>
     );
 }
